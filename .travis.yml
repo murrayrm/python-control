@@ -10,9 +10,13 @@ cache:
 
 python:
   - "2.7"
+  - "3.3"
   - "3.4"
   - "3.5"
-  - "3.6"
+
+env:
+  - SCIPY_VERSION=0.19.1
+  - SCIPY_VERSION=1.0.0
 
 # install required system libraries
 before_install:
@@ -40,6 +44,7 @@ before_install:
 
 # Install packages
 install:
+  - pip install -q scipy=$SCIPY_VERSION
   - conda build --python "$TRAVIS_PYTHON_VERSION" conda-recipe
   - conda install control --use-local
 
