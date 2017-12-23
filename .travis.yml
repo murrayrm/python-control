@@ -50,9 +50,9 @@ before_install:
 # Install packages
 install:
   # Install the desired version of SciPy first
-  - pip install -q scipy==$SCIPY_VERSION
-  - pip install -q matplotlib
-  - $PYTHON setup.py install
+  - conda install scipy==$SCIPY_VERSION
+  - conda install matplotlib
+  - python setup.py install
   - conda install control --use-local
 
 # command to run tests
