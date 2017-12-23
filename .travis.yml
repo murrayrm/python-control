@@ -14,6 +14,11 @@ python:
   - "3.4"
   - "3.5"
 
+# Test against multiple version of SciPy
+#
+# Because there were significant changes in SciPy between v0 and v1, we 
+# test against both of these using the Travis CI environment capability
+#
 env:
   - SCIPY_VERSION=0.19.1
   - SCIPY_VERSION=1.0.0
@@ -44,8 +49,9 @@ before_install:
 
 # Install packages
 install:
+  # Install the desired version of SciPy first
   - pip install -q scipy==$SCIPY_VERSION
-  - conda build --python "$TRAVIS_PYTHON_VERSION" conda-recipe
+  - conda build --python "$TRAVIS_PYTHON_VERSION" --skip-existing conda-recipe
   - conda install control --use-local
 
 # command to run tests
