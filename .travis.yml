@@ -21,8 +21,8 @@ python:
 # We also want to test with and without slycot
 env:
   - SCIPY=0.19.1 SLYCOT=
-  - SCIPY=0.19.1 SLYCOT=slycot
   - SCIPY=1.0.0 SLYCOT=
+  - SCIPY=1.0.0 SLYCOT=slycot
 
 # install required system libraries
 before_install:
@@ -50,8 +50,13 @@ before_install:
 
 # Install packages
 install:
-  # Install the desired version of SciPy first, w/ or w/out slycot
-  - conda install scipy==$SCIPY $SLYCOT
+  # Install the desired version of SciPy first
+  - conda install scipy==$SCIPY
+  # Install slycot dependencies, then slycot from source
+  - conda install gcc
+  - git clone https://github.com/python-control/Slycot.git slycot
+  - cd slycot; python setup.py install; cd ..
+  # Remaining dependencies for python-control
   - conda install matplotlib
   # Don't use conda for installation of control library [preserves scipy]
   - python setup.py install
