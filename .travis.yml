@@ -51,7 +51,8 @@ before_install:
 install:
   # Install the desired version of SciPy first
   - pip install -q scipy==$SCIPY_VERSION
-  - conda build --python "$TRAVIS_PYTHON_VERSION" --skip-existing conda-recipe
+  - pip install -q matplotlib
+  - $PYTHON setup.py install
   - conda install control --use-local
 
 # command to run tests
