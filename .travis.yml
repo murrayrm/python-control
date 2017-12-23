@@ -44,7 +44,7 @@ before_install:
 
 # Install packages
 install:
-  - pip install -q scipy=$SCIPY_VERSION
+  - pip install -q scipy==$SCIPY_VERSION
   - conda build --python "$TRAVIS_PYTHON_VERSION" conda-recipe
   - conda install control --use-local
 
