@@ -52,8 +52,8 @@ install:
   # Install the desired version of SciPy first
   - conda install scipy==$SCIPY_VERSION
   - conda install matplotlib
+  # Don't use conda for installation of control library [preserves scipy]
   - python setup.py install
-  - conda install control --use-local
 
 # command to run tests
 script:
