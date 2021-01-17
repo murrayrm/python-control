@@ -10,7 +10,7 @@ python-control library.
 
 # Python 3 compatibility (needs to go here)
 from __future__ import print_function
-from __future__ import division         # for _convertToStateSpace
+from __future__ import division         # for _convert_to_statespace
 
 """Copyright (c) 2010 by California Institute of Technology
 All rights reserved.
@@ -54,7 +54,7 @@ $Id$
 import math
 import numpy as np
 from numpy import any, array, asarray, concatenate, cos, delete, \
-    dot, empty, exp, eye, isinf, ones, pad, sin, zeros, squeeze
+    dot, empty, exp, eye, isinf, ones, pad, sin, zeros, squeeze, pi
 from numpy.random import rand, randn
 from numpy.linalg import solve, eigvals, matrix_rank
 from numpy.linalg.linalg import LinAlgError
@@ -72,7 +72,7 @@ __all__ = ['StateSpace', 'ss', 'rss', 'drss', 'tf2ss', 'ssdata']
 # Define module default parameter values
 _statesp_defaults = {
     'statesp.use_numpy_matrix': False,  # False is default in 0.9.0 and above
-    'statesp.remove_useless_states': True,
+    'statesp.remove_useless_states': False,
     'statesp.latex_num_format': '.3g',
     'statesp.latex_repr_type': 'partitioned',
     }
@@ -217,8 +217,7 @@ class StateSpace(LTI):
     __array_priority__ = 11     # override ndarray and matrix types
 
     def __init__(self, *args, **kwargs):
-        """
-        StateSpace(A, B, C, D[, dt])
+        """StateSpace(A, B, C, D[, dt])
 
         Construct a state space object.
 
@@ -227,6 +226,13 @@ class StateSpace(LTI):
         use StateSpace(A, B, C, D, dt) where 'dt' is the sampling time (or
         True for unspecified sampling time).  To call the copy constructor,
         call StateSpace(sys), where sys is a StateSpace object.
+
+        The `remove_useless_states` keyword can be used to scan the A, B, and
+        C matrices for rows or columns of zeros.  If the zeros are such that a
+        particular state has no effect on the input-output dynamics, then that
+        state is removed from the A, B, and C matrices.  If not specified, the
+        value is read from `config.defaults['statesp.remove_useless_states']
+        (default = False).
 
         """
         # first get A, B, C, D matrices
@@ -251,8 +257,8 @@ class StateSpace(LTI):
                 "Expected 1, 4, or 5 arguments; received %i." % len(args))
 
         # Process keyword arguments
-        remove_useless = kwargs.get(
-            'remove_useless',
+        remove_useless_states = kwargs.get(
+            'remove_useless_states',
             config.defaults['statesp.remove_useless_states'])
 
         # Convert all matrices to standard form
@@ -321,7 +327,7 @@ class StateSpace(LTI):
             raise ValueError("C and D must have the same number of rows.")
 
         # Check for states that don't do anything, and remove them.
-        if remove_useless:
+        if remove_useless_states:
             self._remove_useless_states()
 
     def _remove_useless_states(self):
@@ -527,7 +533,7 @@ class StateSpace(LTI):
             D = self.D + other
             dt = self.dt
         else:
-            other = _convertToStateSpace(other)
+            other = _convert_to_statespace(other)
 
             # Check to make sure the dimensions are OK
             if ((self.inputs != other.inputs) or
@@ -577,7 +583,7 @@ class StateSpace(LTI):
             D = self.D * other
             dt = self.dt
         else:
-            other = _convertToStateSpace(other)
+            other = _convert_to_statespace(other)
 
             # Check to make sure the dimensions are OK
             if self.inputs != other.outputs:
@@ -614,7 +620,7 @@ class StateSpace(LTI):
 
         # is lti, and convertible?
         if isinstance(other, LTI):
-            return _convertToStateSpace(other) * self
+            return _convert_to_statespace(other) * self
 
         # try to treat this as a matrix
         try:
@@ -640,125 +646,150 @@ class StateSpace(LTI):
         raise NotImplementedError(
             "StateSpace.__rdiv__ is not implemented yet.")
 
-    def evalfr(self, omega):
-        """Evaluate a SS system's transfer function at a single frequency.
+    def __call__(self, x, squeeze=True):
+        """Evaluate system's transfer function at complex frequency.
 
-        self._evalfr(omega) returns the value of the transfer function matrix
-        with input value s = i * omega.
+        Returns the complex frequency response `sys(x)` where `x` is `s` for
+        continuous-time systems and `z` for discrete-time systems.
+        
+        In general the system may be multiple input, multiple output (MIMO), where
+        `m = self.inputs` number of inputs and `p = self.outputs` number of
+        outputs.
 
-        """
-        warn("StateSpace.evalfr(omega) will be deprecated in a future "
-             "release of python-control; use evalfr(sys, omega*1j) instead",
-             PendingDeprecationWarning)
-        return self._evalfr(omega)
-
-    def _evalfr(self, omega):
-        """Evaluate a SS system's transfer function at a single frequency"""
-        # Figure out the point to evaluate the transfer function
-        if isdtime(self, strict=True):
-            s = exp(1.j * omega * self.dt)
-            if omega * self.dt > math.pi:
-                warn("_evalfr: frequency evaluation above Nyquist frequency")
-        else:
-            s = omega * 1.j
-
-        return self.horner(s)
-
-    def horner(self, s):
-        """Evaluate the systems's transfer function for a complex variable
-
-        Returns a matrix of values evaluated at complex variable s.
-        """
-        resp = np.dot(self.C, solve(s * eye(self.states) - self.A,
-                                    self.B)) + self.D
-        return array(resp)
-
-    def freqresp(self, omega):
-        """Evaluate the system's transfer function at a list of frequencies
-
-        Reports the frequency response of the system,
-
-             G(j*omega) = mag*exp(j*phase)
-
-        for continuous time. For discrete time systems, the response is
-        evaluated around the unit circle such that
-
-             G(exp(j*omega*dt)) = mag*exp(j*phase).
+        To evaluate at a frequency omega in radians per second, enter
+        ``x = omega * 1j``, for continuous-time systems, or
+        ``x = exp(1j * omega * dt)`` for discrete-time systems. Or use
+        :meth:`StateSpace.frequency_response`.
 
         Parameters
         ----------
-        omega : array_like
-            A list of frequencies in radians/sec at which the system should be
-            evaluated. The list can be either a python list or a numpy array
-            and will be sorted before evaluation.
+        x : complex or complex array_like
+            Complex frequencies
+        squeeze : bool, optional (default=True)
+            If True and `self` is single input single output (SISO), returns a
+            1D array rather than a 3D array.
 
         Returns
         -------
-        mag : (self.outputs, self.inputs, len(omega)) ndarray
-            The magnitude (absolute value, not dB or log10) of the system
-            frequency response.
-        phase : (self.outputs, self.inputs, len(omega)) ndarray
-            The wrapped phase in radians of the system frequency response.
-        omega : ndarray
-            The list of sorted frequencies at which the response was
-            evaluated.
+        fresp : (p, m, len(x)) complex ndarray or (len(x),) complex ndarray
+            The frequency response of the system. Array is ``len(x)`` if and
+            only if system is SISO and ``squeeze=True``.
+
         """
-        # In case omega is passed in as a list, rather than a proper array.
-        omega = np.asarray(omega)
-
-        numFreqs = len(omega)
-        Gfrf = np.empty((self.outputs, self.inputs, numFreqs),
-                        dtype=np.complex128)
-
-        # Sort frequency and calculate complex frequencies on either imaginary
-        # axis (continuous time) or unit circle (discrete time).
-        omega.sort()
-        if isdtime(self, strict=True):
-            cmplx_freqs = exp(1.j * omega * self.dt)
-            if max(np.abs(omega)) * self.dt > math.pi:
-                warn("freqresp: frequency evaluation above Nyquist frequency")
+        # Use Slycot if available
+        out = self.horner(x)
+        if not hasattr(x, '__len__'):
+            # received a scalar x, squeeze down the array along last dim
+            out = np.squeeze(out, axis=2)
+        if squeeze and self.issiso():
+            return out[0][0]
         else:
-            cmplx_freqs = omega * 1.j
+            return out
 
-        # Do the frequency response evaluation. Use TB05AD from Slycot
-        # if it's available, otherwise use the built-in horners function.
+    def slycot_laub(self, x):
+        """Evaluate system's transfer function at complex frequency
+        using Laub's method from Slycot.
+
+        Expects inputs and outputs to be formatted correctly. Use ``sys(x)``
+        for a more user-friendly interface.
+
+        Parameters
+        ----------
+        x : complex array_like or complex
+            Complex frequency
+
+        Returns
+        -------
+        output : (number_outputs, number_inputs, len(x)) complex ndarray
+            Frequency response
+        """
+        from slycot import tb05ad
+
+        # preallocate
+        x_arr = np.atleast_1d(x) # array-like version of x
+        n = self.states
+        m = self.inputs
+        p = self.outputs
+        out = np.empty((p, m, len(x_arr)), dtype=complex)
+        # The first call both evaluates C(sI-A)^-1 B and also returns
+        # Hessenberg transformed matrices at, bt, ct.
+        result = tb05ad(n, m, p, x_arr[0], self.A, self.B, self.C, job='NG')
+        # When job='NG', result = (at, bt, ct, g_i, hinvb, info)
+        at = result[0]
+        bt = result[1]
+        ct = result[2]
+
+        # TB05AD frequency evaluation does not include direct feedthrough.
+        out[:, :, 0] = result[3] + self.D
+
+        # Now, iterate through the remaining frequencies using the
+        # transformed state matrices, at, bt, ct.
+
+        # Start at the second frequency, already have the first.
+        for kk, x_kk in enumerate(x_arr[1:len(x_arr)]):
+            result = tb05ad(n, m, p, x_kk, at, bt, ct, job='NH')
+            # When job='NH', result = (g_i, hinvb, info)
+
+            # kk+1 because enumerate starts at kk = 0.
+            # but zero-th spot is already filled.
+            out[:, :, kk+1] = result[0] + self.D
+        return out
+
+    def horner(self, x):
+        """Evaluate system's transfer function at complex frequency
+        using Laub's or Horner's method.
+
+        Evaluates `sys(x)` where `x` is `s` for continuous-time systems and `z`
+        for discrete-time systems.
+
+        Expects inputs and outputs to be formatted correctly. Use ``sys(x)``
+        for a more user-friendly interface.
+
+        Parameters
+        ----------
+        x : complex array_like or complex
+            Complex frequencies
+
+        Returns
+        -------
+        output : (self.outputs, self.inputs, len(x)) complex ndarray
+            Frequency response
+
+        Notes
+        -----
+        Attempts to use Laub's method from Slycot library, with a
+        fall-back to python code.
+        """
         try:
-            from slycot import tb05ad
+            out = self.slycot_laub(x)
+        except (ImportError, Exception):
+            # Fall back because either Slycot unavailable or cannot handle
+            # certain cases.
+            x_arr = np.atleast_1d(x) # force to be an array
+            # Preallocate
+            out = empty((self.outputs, self.inputs, len(x_arr)), dtype=complex)
 
-            n = np.shape(self.A)[0]
-            m = self.inputs
-            p = self.outputs
-            # The first call both evaluates C(sI-A)^-1 B and also returns
-            # Hessenberg transformed matrices at, bt, ct.
-            result = tb05ad(n, m, p, cmplx_freqs[0], self.A,
-                            self.B, self.C, job='NG')
-            # When job='NG', result = (at, bt, ct, g_i, hinvb, info)
-            at = result[0]
-            bt = result[1]
-            ct = result[2]
+            #TODO: can this be vectorized?
+            for idx, x_idx in enumerate(x_arr):
+                out[:,:,idx] = \
+                    np.dot(self.C,
+                        solve(x_idx * eye(self.states) - self.A, self.B)) \
+                    + self.D
+        return out
 
-            # TB05AD frequency evaluation does not include direct feedthrough.
-            Gfrf[:, :, 0] = result[3] + self.D
+    def freqresp(self, omega):
+        """(deprecated) Evaluate transfer function at complex frequencies.
 
-            # Now, iterate through the remaining frequencies using the
-            # transformed state matrices, at, bt, ct.
-
-            # Start at the second frequency, already have the first.
-            for kk, cmplx_freqs_kk in enumerate(cmplx_freqs[1:numFreqs]):
-                result = tb05ad(n, m, p, cmplx_freqs_kk, at,
-                                bt, ct, job='NH')
-                # When job='NH', result = (g_i, hinvb, info)
-
-                # kk+1 because enumerate starts at kk = 0.
-                # but zero-th spot is already filled.
-                Gfrf[:, :, kk+1] = result[0] + self.D
-
-        except ImportError:  # Slycot unavailable. Fall back to horner.
-            for kk, cmplx_freqs_kk in enumerate(cmplx_freqs):
-                Gfrf[:, :, kk] = self.horner(cmplx_freqs_kk)
-
-        #      mag           phase           omega
-        return np.abs(Gfrf), np.angle(Gfrf), omega
+        .. deprecated::0.9.0
+            Method has been given the more pythonic name
+            :meth:`StateSpace.frequency_response`. Or use
+            :func:`freqresp` in the MATLAB compatibility module.
+        """
+        warn("StateSpace.freqresp(omega) will be removed in a "
+             "future release of python-control; use "
+             "sys.frequency_response(omega), or freqresp(sys, omega) in the "
+             "MATLAB compatibility module instead", DeprecationWarning)
+        return self.frequency_response(omega)
 
     # Compute poles and zeros
     def pole(self):
@@ -814,7 +845,7 @@ class StateSpace(LTI):
     def feedback(self, other=1, sign=-1):
         """Feedback interconnection between two LTI systems."""
 
-        other = _convertToStateSpace(other)
+        other = _convert_to_statespace(other)
 
         # Check to make sure the dimensions are OK
         if (self.inputs != other.outputs) or (self.outputs != other.inputs):
@@ -882,7 +913,7 @@ class StateSpace(LTI):
             Dimension of (plant) control input.
 
         """
-        other = _convertToStateSpace(other)
+        other = _convert_to_statespace(other)
         # maximal values for nu, ny
         if ny == -1:
             ny = min(other.inputs, self.outputs)
@@ -1036,7 +1067,7 @@ class StateSpace(LTI):
         The second model is converted to state-space if necessary, inputs and
         outputs are appended and their order is preserved"""
         if not isinstance(other, StateSpace):
-            other = _convertToStateSpace(other)
+            other = _convert_to_statespace(other)
 
         self.dt = common_timebase(self.dt, other.dt)
 
@@ -1148,7 +1179,7 @@ class StateSpace(LTI):
                 gain = np.asarray(self.D -
                                   self.C.dot(np.linalg.solve(self.A, self.B)))
             else:
-                gain = self.horner(1)
+                gain = np.squeeze(self.horner(1))
         except LinAlgError:
             # eigenvalue at DC
             gain = np.tile(np.nan, (self.outputs, self.inputs))
@@ -1161,7 +1192,7 @@ class StateSpace(LTI):
 
 
 # TODO: add discrete time check
-def _convertToStateSpace(sys, **kw):
+def _convert_to_statespace(sys, **kw):
     """Convert a system to state space form (if needed).
 
     If sys is already a state space, then it is returned.  If sys is a
@@ -1169,8 +1200,8 @@ def _convertToStateSpace(sys, **kw):
     returned.  If sys is a scalar, then the number of inputs and outputs can
     be specified manually, as in:
 
-    >>> sys = _convertToStateSpace(3.) # Assumes inputs = outputs = 1
-    >>> sys = _convertToStateSpace(1., inputs=3, outputs=2)
+    >>> sys = _convert_to_statespace(3.) # Assumes inputs = outputs = 1
+    >>> sys = _convert_to_statespace(1., inputs=3, outputs=2)
 
     In the latter example, A = B = C = 0 and D = [[1., 1., 1.]
                                                   [1., 1., 1.]].
@@ -1180,7 +1211,7 @@ def _convertToStateSpace(sys, **kw):
 
     if isinstance(sys, StateSpace):
         if len(kw):
-            raise TypeError("If sys is a StateSpace, _convertToStateSpace "
+            raise TypeError("If sys is a StateSpace, _convert_to_statespace "
                             "cannot take keywords.")
 
         # Already a state space system; just return it
@@ -1196,7 +1227,7 @@ def _convertToStateSpace(sys, **kw):
             from slycot import td04ad
             if len(kw):
                 raise TypeError("If sys is a TransferFunction, "
-                                "_convertToStateSpace cannot take keywords.")
+                                "_convert_to_statespace cannot take keywords.")
 
             # Change the numerator and denominator arrays so that the transfer
             # function matrix has a common denominator.
@@ -1249,18 +1280,15 @@ def _convertToStateSpace(sys, **kw):
         # Generate a simple state space system of the desired dimension
         # The following Doesn't work due to inconsistencies in ltisys:
         #   return StateSpace([[]], [[]], [[]], eye(outputs, inputs))
-        return StateSpace(0., zeros((1, inputs)), zeros((outputs, 1)),
+        return StateSpace([], zeros((0, inputs)), zeros((outputs, 0)),
                           sys * ones((outputs, inputs)))
 
     # If this is a matrix, try to create a constant feedthrough
     try:
         D = _ssmatrix(sys)
         return StateSpace([], [], [], D)
-    except Exception as e:
-        print("Failure to assume argument is matrix-like in"
-              " _convertToStateSpace, result %s" % e)
-
-    raise TypeError("Can't convert given type to StateSpace system.")
+    except:
+        raise TypeError("Can't convert given type to StateSpace system.")
 
 
 # TODO: add discrete time option
@@ -1637,14 +1665,14 @@ def tf2ss(*args):
     from .xferfcn import TransferFunction
     if len(args) == 2 or len(args) == 3:
         # Assume we were given the num, den
-        return _convertToStateSpace(TransferFunction(*args))
+        return _convert_to_statespace(TransferFunction(*args))
 
     elif len(args) == 1:
         sys = args[0]
         if not isinstance(sys, TransferFunction):
             raise TypeError("tf2ss(sys): sys must be a TransferFunction "
                             "object.")
-        return _convertToStateSpace(sys)
+        return _convert_to_statespace(sys)
     else:
         raise ValueError("Needs 1 or 2 arguments; received %i." % len(args))
 
@@ -1744,5 +1772,5 @@ def ssdata(sys):
     (A, B, C, D): list of matrices
         State space data for the system
     """
-    ss = _convertToStateSpace(sys)
+    ss = _convert_to_statespace(sys)
     return ss.A, ss.B, ss.C, ss.D

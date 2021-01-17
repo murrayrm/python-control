@@ -5,8 +5,10 @@ RMM, 30 Mar 2011 (based on TestXferFcn from v0.4a)
 
 import numpy as np
 import pytest
+import operator
 
-from control.statesp import StateSpace, _convertToStateSpace, rss
+import control as ct
+from control.statesp import StateSpace, _convert_to_statespace, rss
 from control.xferfcn import TransferFunction, _convert_to_transfer_function, \
     ss2tf
 from control.lti import evalfr
@@ -404,34 +406,6 @@ class TestXferFcn:
         assert (sys1.inputs, sys1.outputs) == (2, 1)
         assert sys1.dt == 0.5
 
-    @pytest.mark.parametrize("omega, resp",
-                             [(1, np.array([[-0.5 - 0.5j]])),
-                              (32, np.array([[0.002819593 - 0.03062847j]]))])
-    @pytest.mark.parametrize("dt", [None, 0, 1e-3])
-    def test_evalfr_siso(self, dt, omega, resp):
-        """Evaluate the frequency response at single frequencies"""
-        sys = TransferFunction([1., 3., 5], [1., 6., 2., -1])
-
-        if dt:
-            sys = sample_system(sys, dt)
-            s = np.exp(omega * 1j * dt)
-        else:
-            s = omega * 1j
-
-        # Correct versions of the call
-        np.testing.assert_allclose(evalfr(sys, s), resp, atol=1e-3)
-        np.testing.assert_allclose(sys(s), resp, atol=1e-3)
-        # Deprecated version of the call (should generate warning)
-        with pytest.deprecated_call():
-            np.testing.assert_allclose(sys.evalfr(omega), resp, atol=1e-3)
-
-        # call above nyquist frequency
-        if dt:
-            with pytest.warns(UserWarning):
-                np.testing.assert_allclose(sys._evalfr(omega + 2 * np.pi / dt),
-                                           resp,
-                                           atol=1e-3)
-
     def test_is_static_gain(self):
         numstatic = 1.1
         denstatic = 1.2
@@ -454,10 +428,37 @@ class TestXferFcn:
         assert not TransferFunction(numdynamicmimo,
                                     denstaticmimo).is_static_gain()
 
+    @pytest.mark.parametrize("omega, resp",
+                             [(1, np.array([[-0.5 - 0.5j]])),
+                              (32, np.array([[0.002819593 - 0.03062847j]]))])
+    @pytest.mark.parametrize("dt", [None, 0, 1e-3])
+    def test_call_siso(self, dt, omega, resp):
+        """Evaluate the frequency response of a SISO system at one frequency."""
+        sys = TransferFunction([1., 3., 5], [1., 6., 2., -1])
+
+        if dt:
+            sys = sample_system(sys, dt)
+            s = np.exp(omega * 1j * dt)
+        else:
+            s = omega * 1j
+
+        # Correct versions of the call
+        np.testing.assert_allclose(evalfr(sys, s), resp, atol=1e-3)
+        np.testing.assert_allclose(sys(s), resp, atol=1e-3)
+        # Deprecated version of the call (should generate exception)
+        with pytest.raises(AttributeError):
+            np.testing.assert_allclose(sys.evalfr(omega), resp, atol=1e-3)
+
+
+    @nopython2
+    def test_call_dtime(self):
+        sys = TransferFunction([1., 3., 5], [1., 6., 2., -1], 0.1)
+        np.testing.assert_array_almost_equal(sys(1j), -0.5 - 0.5j)
 
     @slycotonly
-    def test_evalfr_mimo(self):
-        """Evaluate the frequency response of a MIMO system at a freq"""
+    def test_call_mimo(self):
+        """Evaluate the frequency response of a MIMO system at one frequency."""
+
         num = [[[1., 2.], [0., 3.], [2., -1.]],
                [[1.], [4., 0.], [1., -4., 3.]]]
         den = [[[-3., 2., 4.], [1., 0., 0.], [2., -1.]],
@@ -467,13 +468,21 @@ class TestXferFcn:
                 [-0.083333333333333, -0.188235294117647 - 0.847058823529412j,
                  -1. - 8.j]]
 
-        np.testing.assert_array_almost_equal(sys._evalfr(2.), resp)
+        np.testing.assert_array_almost_equal(evalfr(sys, 2j), resp)
 
         # Test call version as well
         np.testing.assert_array_almost_equal(sys(2.j), resp)
 
-    def test_freqresp_siso(self):
-        """Evaluate the SISO magnitude and phase at multiple frequencies"""
+    def test_freqresp_deprecated(self):
+        sys = TransferFunction([1., 3., 5], [1., 6., 2., -1.])
+        # Deprecated version of the call (should generate warning)
+        with pytest.warns(DeprecationWarning):
+            sys.freqresp(1.)
+
+    def test_frequency_response_siso(self):
+        """Evaluate the magnitude and phase of a SISO system at
+        multiple frequencies."""
+
         sys = TransferFunction([1., 3., 5], [1., 6., 2., -1])
 
         truemag = [[[4.63507337473906, 0.707106781186548, 0.0866592803995351]]]
@@ -481,7 +490,7 @@ class TestXferFcn:
                        -1.32655885133871]]]
         trueomega = [0.1, 1., 10.]
 
-        mag, phase, omega = sys.freqresp(trueomega)
+        mag, phase, omega = sys.frequency_response(trueomega, squeeze=False)
 
         np.testing.assert_array_almost_equal(mag, truemag)
         np.testing.assert_array_almost_equal(phase, truephase)
@@ -509,7 +518,7 @@ class TestXferFcn:
                        [-1.66852323, -1.89254688, -1.62050658],
                        [-0.13298964, -1.10714871, -2.75046720]]]
 
-        mag, phase, omega = sys.freqresp(true_omega)
+        mag, phase, omega = sys.frequency_response(true_omega)
 
         np.testing.assert_array_almost_equal(mag, true_mag)
         np.testing.assert_array_almost_equal(phase, true_phase)
@@ -702,7 +711,7 @@ class TestXferFcn:
         h = (b0 + b1*s + b2*s**2)/(a0 + a1*s + a2*s**2 + a3*s**3)
         H = TransferFunction([[h.num[0][0]], [(h*s).num[0][0]]],
                              [[h.den[0][0]], [h.den[0][0]]])
-        sys = _convertToStateSpace(H)
+        sys = _convert_to_statespace(H)
         H2 = _convert_to_transfer_function(sys)
         np.testing.assert_array_almost_equal(H.num[0][0], H2.num[0][0])
         np.testing.assert_array_almost_equal(H.den[0][0], H2.den[0][0])
@@ -1015,3 +1024,20 @@ class TestLTIConverter:
             mimotf.returnScipySignalLTI()
         with pytest.raises(ValueError):
             mimotf.returnScipySignalLTI(strict=True)
+
+@pytest.mark.parametrize(
+    "op",
+    [pytest.param(getattr(operator, s), id=s) for s in ('add', 'sub', 'mul')])
+@pytest.mark.parametrize(
+    "tf, arr",
+    [pytest.param(ct.tf([1], [0.5, 1]), np.array(2.), id="0D scalar"),
+     pytest.param(ct.tf([1], [0.5, 1]), np.array([2.]), id="1D scalar"),
+     pytest.param(ct.tf([1], [0.5, 1]), np.array([[2.]]), id="2D scalar")])
+def test_xferfcn_ndarray_precedence(op, tf, arr):
+    # Apply the operator to the transfer function and array
+    result = op(tf, arr)
+    assert isinstance(result, ct.TransferFunction)
+
+    # Apply the operator to the array and transfer function
+    result = op(arr, tf)
+    assert isinstance(result, ct.TransferFunction)

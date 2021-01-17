@@ -9,14 +9,16 @@ BG,  26 Jul 2020 merge statesp_array_test.py differences into statesp_test.py
 
 import numpy as np
 import pytest
+import operator
 from numpy.linalg import solve
 from scipy.linalg import block_diag, eigvals
 
+import control as ct
 from control.config import defaults
 from control.dtime import sample_system
 from control.lti import evalfr
-from control.statesp import (StateSpace, _convertToStateSpace, drss, rss, ss,
-                             tf2ss, _statesp_defaults)
+from control.statesp import (StateSpace, _convert_to_statespace, drss,
+                             rss, ss, tf2ss, _statesp_defaults)
 from control.tests.conftest import ismatarrayout, slycotonly
 from control.xferfcn import TransferFunction, ss2tf
 
@@ -224,7 +226,7 @@ class TestStateSpace:
 
     def test_zero_empty(self):
         """Test to make sure zero() works with no zeros in system."""
-        sys = _convertToStateSpace(TransferFunction([1], [1, 2, 1]))
+        sys = _convert_to_statespace(TransferFunction([1], [1, 2, 1]))
         np.testing.assert_array_equal(sys.zero(), np.array([]))
 
     @slycotonly
@@ -327,7 +329,7 @@ class TestStateSpace:
                                          [-3.00137118e-01+3.42881660e-03j,
                                           6.32015038e-04-1.21462255e-02j]]))])
     @pytest.mark.parametrize("dt", [None, 0, 1e-3])
-    def test_evalfr(self, dt, omega, resp):
+    def test_call(self, dt, omega, resp):
         """Evaluate the frequency response at single frequencies"""
         A = [[-2, 0.5], [0.5, -0.3]]
         B = [[0.3, -1.3], [0.1, 0.]]
@@ -341,18 +343,14 @@ class TestStateSpace:
         else:
             s = omega * 1j
 
-        # Correct version of the call
+        # Correct versions of the call
         np.testing.assert_allclose(evalfr(sys, s), resp, atol=1e-3)
-        # Deprecated version of the call (should generate warning)
-        with pytest.deprecated_call():
-            np.testing.assert_allclose(sys.evalfr(omega), resp, atol=1e-3)
+        np.testing.assert_allclose(sys(s), resp, atol=1e-3)
 
-        # call above nyquist frequency
-        if dt:
-            with pytest.warns(UserWarning):
-                np.testing.assert_allclose(sys._evalfr(omega + 2 * np.pi / dt),
-                                           resp,
-                                           atol=1e-3)
+        # Deprecated name of the call (should generate error)
+        with pytest.raises(AttributeError):
+            sys.evalfr(omega)
+
 
     @slycotonly
     def test_freq_resp(self):
@@ -374,11 +372,16 @@ class TestStateSpace:
                       [-0.438157380501337, -1.40720969147217]]]
         true_omega = [0.1, 10.]
 
-        mag, phase, omega = sys.freqresp(true_omega)
+        mag, phase, omega = sys.frequency_response(true_omega)
 
         np.testing.assert_almost_equal(mag, true_mag)
         np.testing.assert_almost_equal(phase, true_phase)
         np.testing.assert_equal(omega, true_omega)
+
+        # Deprecated version of the call (should return warning)
+        with pytest.warns(DeprecationWarning, match="will be removed"):
+            mag, phase, omega = sys.freqresp(true_omega)
+            np.testing.assert_almost_equal(mag, true_mag)
 
     def test_is_static_gain(self):
         A0 = np.zeros((2,2))
@@ -392,9 +395,7 @@ class TestStateSpace:
         D0 = 0
         D1 = np.ones((2,1))
         assert StateSpace(A0, B0, C1, D1).is_static_gain()
-        # TODO: fix this once remove_useless_states is false by default
-        # should be False when remove_useless is false
-        # print(StateSpace(A1, B0, C1, D1).is_static_gain())
+        assert not StateSpace(A1, B0, C1, D1).is_static_gain()
         assert not StateSpace(A0, B1, C1, D1).is_static_gain()
         assert not StateSpace(A1, B1, C1, D1).is_static_gain()
         assert StateSpace(A0, B0, C0, D0).is_static_gain()
@@ -455,7 +456,7 @@ class TestStateSpace:
         s = TransferFunction([1, 0], [1])
         h = 1 / (s + 1) / (s + 2)
         sys1 = StateSpace(A1, B1, C1, D1)
-        sys2 = _convertToStateSpace(h)
+        sys2 = _convert_to_statespace(h)
         sys3c = sys1.append(sys2)
         np.testing.assert_array_almost_equal(sys1.A, sys3c.A[:3, :3])
         np.testing.assert_array_almost_equal(sys1.B, sys3c.B[:3, :2])
@@ -583,10 +584,9 @@ class TestStateSpace:
 
     def test_remove_useless_states(self):
         """Regression: _remove_useless_states gives correct ABC sizes."""
-        g1 = StateSpace(np.zeros((3, 3)),
-                        np.zeros((3, 4)),
-                        np.zeros((5, 3)),
-                        np.zeros((5, 4)))
+        g1 = StateSpace(np.zeros((3, 3)), np.zeros((3, 4)),
+                        np.zeros((5, 3)), np.zeros((5, 4)),
+                        remove_useless_states=True)
         assert (0, 0) == g1.A.shape
         assert (0, 4) == g1.B.shape
         assert (5, 0) == g1.C.shape
@@ -624,10 +624,10 @@ class TestStateSpace:
         assert 0 == g1.outputs
 
     def test_matrix_to_state_space(self):
-        """_convertToStateSpace(matrix) gives ss([],[],[],D)"""
+        """_convert_to_statespace(matrix) gives ss([],[],[],D)"""
         with pytest.deprecated_call():
             D = np.matrix([[1, 2, 3], [4, 5, 6]])
-        g = _convertToStateSpace(D)
+        g = _convert_to_statespace(D)
 
         np.testing.assert_array_equal(np.empty((0, 0)), g.A)
         np.testing.assert_array_equal(np.empty((0, D.shape[1])), g.B)
@@ -739,9 +739,9 @@ class TestStateSpace:
         sys322.horner(1. + 1.j)
 
         # Make sure result agrees with frequency response
-        mag, phase, omega = sys322.freqresp([1])
+        mag, phase, omega = sys322.frequency_response([1])
         np.testing.assert_array_almost_equal(
-            sys322.horner(1.j),
+            np.squeeze(sys322.horner(1.j)),
             mag[:, :, 0] * np.exp(1.j * phase[:, :, 0]))
 
 class TestRss:
@@ -902,7 +902,6 @@ LTX_G2_REF = {
 refkey_n = {None: 'p3', '.3g': 'p3', '.5g': 'p5'}
 refkey_r = {None: 'p', 'partitioned': 'p', 'separate': 's'}
 
-
 @pytest.mark.parametrize(" gmats,  ref",
                          [(LTX_G1, LTX_G1_REF),
                           (LTX_G2, LTX_G2_REF)])
@@ -927,4 +926,24 @@ def test_latex_repr(gmats, ref, repr_type, num_format, editsdefaults):
     g = StateSpace(*gmats)
     refkey = "{}_{}".format(refkey_n[num_format], refkey_r[repr_type])
     assert g._repr_latex_() == ref[refkey]
+
+
+@pytest.mark.parametrize(
+    "op",
+    [pytest.param(getattr(operator, s), id=s) for s in ('add', 'sub', 'mul')])
+@pytest.mark.parametrize(
+    "tf, arr",
+    [pytest.param(ct.tf([1], [0.5, 1]), np.array(2.), id="0D scalar"),
+     pytest.param(ct.tf([1], [0.5, 1]), np.array([2.]), id="1D scalar"),
+     pytest.param(ct.tf([1], [0.5, 1]), np.array([[2.]]), id="2D scalar")])
+def test_xferfcn_ndarray_precedence(op, tf, arr):
+    # Apply the operator to the transfer function and array
+    ss = ct.tf2ss(tf)
+    result = op(ss, arr)
+    assert isinstance(result, ct.StateSpace)
+
+    # Apply the operator to the array and transfer function
+    ss = ct.tf2ss(tf)
+    result = op(arr, ss)
+    assert isinstance(result, ct.StateSpace)
 
