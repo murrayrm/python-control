@@ -506,11 +506,10 @@ def bode_plot(syslist, omega=None,
 # Nyquist plot
 #
 
-def nyquist_plot(syslist, omega=None, plot=True, label_freq=0,
-                 arrowhead_length=0.1, arrowhead_width=0.1,
-                 mirror='--', color=None, *args, **kwargs):
-    """
-    Nyquist plot for a system
+def nyquist_plot(
+        syslist, omega=None, plot=True, label_freq=0, color=None, mirror='--',
+        arrowhead_length=0.1, arrowhead_width=0.1, *args, **kwargs):
+    """Nyquist plot for a system
 
     Plots a Nyquist plot for the system over a (optional) frequency range.
 
@@ -520,12 +519,15 @@ def nyquist_plot(syslist, omega=None, plot=True, label_freq=0,
         List of linear input/output systems (single system is OK)
     omega : freq_range
         Range of frequencies (list or bounds) in rad/sec
-    Plot : boolean
+    plot : boolean
         If True, plot magnitude
-    color : string
-        Used to specify the color of the plot
     label_freq : int
         Label every nth frequency on the plot
+    color : string
+        Used to specify the color of the plot
+    mirror : string
+        Line style to use for mirror image of Nyquist plot (default =
+        '--').  If set to False, do not plot mirror image.
     arrowhead_width : arrow head width
     arrowhead_length : arrow head length
     *args : :func:`matplotlib.pyplot.plot` positional properties, optional
