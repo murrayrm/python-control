@@ -3,10 +3,13 @@
 RMM, 1 Jul 2011
 """
 
+import signal
+
 import matplotlib.pyplot as plt
 import numpy as np
 from numpy.testing import assert_array_almost_equal
 import pytest
+import scipy as sp  
 
 import control as ct
 from control.rlocus import root_locus, _RLClickDispatcher
@@ -76,6 +79,8 @@ class TestRootLocus:
         assert_array_almost_equal(zoom_x, zoom_x_valid)
         assert_array_almost_equal(zoom_y, zoom_y_valid)
 
+    @pytest.mark.skipif(not hasattr(signal, 'SIGALRM'),
+                        reason="SIGALRM is Unix only")
     def test_rlocus_default_wn(self):
         """Check that default wn calculation works properly"""
         #
@@ -87,25 +92,15 @@ class TestRootLocus:
         # This unit test makes sure that is fixed by generating a test case
         # that will take a long time to do the calculation (minutes).
         #
-        import scipy as sp
-        import signal
-
         # Define a system that exhibits this behavior
         sys = ct.tf(*sp.signal.zpk2tf(
             [-1e-2, 1-1e7j, 1+1e7j], [0, -1e7j, 1e7j], 1))
 
-        # Set up a timer to catch execution time
-        try:
-            def signal_handler(signum, frame):
-                raise Exception("rlocus took too long to complete")
-            signal.signal(signal.SIGALRM, signal_handler)
+        def signal_handler(signum, frame):
+            raise Exception("rlocus took too long to complete")
+        signal.signal(signal.SIGALRM, signal_handler)
 
-            # Run the command and reset the alarm
-            signal.alarm(2)         # 2 second timeout
-            ct.root_locus(sys)
-            signal.alarm(0)         # reset the alarm
-            
-        except AttributeError:
-            # If no SIGALRM (eg, on Windows), then skip this test
-            pass
-
+        # Run the command and reset the alarm
+        signal.alarm(2)         # 2 second timeout
+        ct.root_locus(sys)
+        signal.alarm(0)         # reset the alarm            
