@@ -523,12 +523,13 @@ _nyquist_defaults = {
     'nyquist.arrows': 2,
     'nyquist.arrow_size': 8,
     'nyquist.indent_radius': 1e-1,
+    'nyquist.indent_points': 50,
     'nyquist.indent_direction': 'right',
 }
 
 
 def nyquist_plot(syslist, omega=None, plot=True, omega_limits=None,
-                 omega_num=None, label_freq=0, color=None,
+                 omega_num=None, label_freq=0, color=None, verbose=False,
                  return_contour=False, warn_nyquist=True, *args, **kwargs):
     """Nyquist plot for a system
 
@@ -602,6 +603,9 @@ def nyquist_plot(syslist, omega=None, plot=True, omega_limits=None,
 
     warn_nyquist : bool, optional
         If set to 'False', turn off warnings about frequencies above Nyquist.
+
+    verbose : bool, optional
+        If set to 'True', turn off verbose informational messages.
 
     *args : :func:`matplotlib.pyplot.plot` positional properties, optional
         Additional arguments for `matplotlib` plots (color, linestyle, etc)
@@ -677,6 +681,8 @@ def nyquist_plot(syslist, omega=None, plot=True, omega_limits=None,
     arrow_style = config._get_param('nyquist', 'arrow_style', kwargs, None)
     indent_radius = config._get_param(
         'nyquist', 'indent_radius', kwargs, _nyquist_defaults, pop=True)
+    indent_points = config._get_param(
+        'nyquist', 'indent_points', kwargs, _nyquist_defaults, pop=True)
     indent_direction = config._get_param(
         'nyquist', 'indent_direction', kwargs, _nyquist_defaults, pop=True)
 
@@ -714,12 +720,7 @@ def nyquist_plot(syslist, omega=None, plot=True, omega_limits=None,
             if np.any(omega_sys * sys.dt > np.pi) and warn_nyquist:
                 warnings.warn("evaluation above Nyquist frequency")
 
-        # do indentations in s-plane where it is more convenient
-        splane_contour = 1j * omega_sys
-
-        # Bend the contour around any poles on/near the imaginary axis
-        # TODO: smarter indent radius that depends on dcgain of system
-        # and timebase of discrete system.
+        # Enhance contour around any poles on/near the imaginary axis
         if isinstance(sys, (StateSpace, TransferFunction)) \
                 and indent_direction != 'none':
             if sys.isctime():
@@ -731,13 +732,30 @@ def nyquist_plot(syslist, omega=None, plot=True, omega_limits=None,
                 zplane_poles = zplane_poles[~np.isclose(abs(zplane_poles), 0.)]
                 splane_poles = np.log(zplane_poles)/sys.dt
 
-            if splane_contour[1].imag > indent_radius \
-                    and np.any(np.isclose(abs(splane_poles), 0)) \
-                    and not omega_range_given:
-                # add some points for quarter circle around poles at origin
-                splane_contour = np.concatenate(
-                    (1j * np.linspace(0., indent_radius, 50),
-                    splane_contour[1:]))
+            # Add extra sample points near any poles on the (+ive) imag axis
+            for s in splane_poles[(splane_poles.imag >= 0)]:
+                if verbose:
+                    print("Adding points near pole at s = ", s)
+
+                # Get rid of nearby points and add points around the pole
+                omega_sys = np.concatenate((
+                    np.delete(omega_sys,
+                              np.abs(omega_sys - s.imag) < indent_radius),
+                    np.linspace(
+                        s.imag - indent_radius if s.imag > indent_radius else 0,
+                        s.imag + indent_radius, indent_points)
+                ))
+
+            # Re-sort the points on the contour
+            omega_sys.sort()
+
+            # Map the contour to the complex plane so that we can indent
+            splane_contour = 1j * omega_sys
+
+            # Create a variable to keep track of indent messages
+            _indent_msg_count = 0
+
+            # Modify the contour to avoid points on the imaginary axis
             for i, s in enumerate(splane_contour):
                 # Find the nearest pole
                 p = splane_poles[(np.abs(splane_poles - s)).argmin()]
@@ -745,16 +763,35 @@ def nyquist_plot(syslist, omega=None, plot=True, omega_limits=None,
                 if abs(s - p) < indent_radius:
                     if p.real < 0 or (np.isclose(p.real, 0) \
                             and indent_direction == 'right'):
-                        # Indent to the right
-                        splane_contour[i] += \
+                        # Indent to the right, using a semi-circle pattern
+                        if verbose:
+                            if _indent_msg_count == 0:
+                                print("Indenting right around pole", p,
+                                      "at s =", s)
+                            _indent_msg_count += 1
+                        splane_contour[i] = p.real + 1j * s.imag + \
                             np.sqrt(indent_radius ** 2 - (s-p).imag ** 2)
                     elif p.real > 0 or (np.isclose(p.real, 0) \
                             and indent_direction == 'left'):
                         # Indent to the left
-                        splane_contour[i] -= \
+                        if verbose:
+                            if _indent_msg_count == 0:
+                                print("Indenting left around pole", p,
+                                      "at s =", s)
+                            _indent_msg_count += 1
+                        splane_contour[i] = p.real + 1j * s.imag - \
                             np.sqrt(indent_radius ** 2 - (s-p).imag ** 2)
                     else:
                         ValueError("unknown value for indent_direction")
+                else:
+                    if verbose and _indent_msg_count > 0:
+                        print("Indenting complete after ", _indent_msg_count,
+                              "points at s =", s)
+                        _indent_msg_count = 0
+
+        else:
+            # do indentations in s-plane where it is more convenient
+            splane_contour = 1j * omega_sys
 
         # change contour to z-plane if necessary
         if sys.isctime():
