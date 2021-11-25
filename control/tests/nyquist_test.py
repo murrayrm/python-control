@@ -12,6 +12,7 @@ import pytest
 import numpy as np
 import matplotlib.pyplot as plt
 import control as ct
+import control.matlab as matlab
 
 pytestmark = pytest.mark.usefixtures("mplcleanup")
 
@@ -139,7 +140,10 @@ def test_nyquist_fbs_examples():
 
     plt.figure()
     plt.title("Figure 10.10: L(s) = 3 (s+6)^2 / (s (s+1)^2) [zoom]")
-    count = ct.nyquist_plot(sys, omega_limits=[1.5, 1e3])
+    count, contour = ct.nyquist_plot(sys, omega_limits=[1.5, 1e3],
+                                     return_contour=True)
+    assert np.isclose(contour[0], 1.5j)
+    assert np.isclose(contour[-1], 1e3j)
     # Frequency limits for zoom give incorrect encirclement count
     # assert _Z(sys) == count + _P(sys)
     assert count == -1
@@ -193,20 +197,11 @@ def test_nyquist_indent():
     plt.title("Pole at origin; indent_radius=default")
     assert _Z(sys) == count + _P(sys)
 
-    # first value of default omega vector was 0.1, replaced by 0. for contour
-    # indent_radius is larger than 0.1 -> no extra quater circle around origin
-    count, contour = ct.nyquist_plot(sys, plot=False, indent_radius=.1007,
-                                     return_contour=True)
-    np.testing.assert_allclose(contour[0], .1007+0.j)
-    # second value of omega_vector is larger than indent_radius: not indented
-    assert np.all(contour.real[2:] == 0.)
-
     plt.figure();
     count, contour = ct.nyquist_plot(sys, indent_radius=0.01,
                                      return_contour=True)
     plt.title("Pole at origin; indent_radius=0.01; encirclements = %d" % count)
     assert _Z(sys) == count + _P(sys)
-    # indent radius is smaller than the start of the default omega vector
     # check that a quarter circle around the pole at origin has been added.
     np.testing.assert_allclose(contour[:50].real**2 + contour[:50].imag**2,
                                0.01**2)
@@ -241,6 +236,26 @@ def test_nyquist_indent():
         "Imaginary poles; indent_direction='none'; encirclements = %d" % count)
     assert _Z(sys) == count + _P(sys)
 
+# Test to make sure that unstable systems are handled correctly
+def test_nyquist_unstable():
+    # Create a system with unstable complex poles
+    sys = ct.ss(ct.tf(*matlab.zpk2tf(
+        [-3e-5 + 3j, -3e-5 - 3j],
+        [0, 1e-4 + 2j, 1e-4 - 2j, -1e-2],
+        1)))
+
+    # Create a stabilizing compensator
+    K, S, E = ct.lqr(sys, np.eye(sys.nstates), 1)
+    L, P, E = ct.lqe(sys.A, sys.B, sys.C, 1, 1)
+    ctrl = ct.ss(sys.A - L @ sys.C - sys.B @ K, L, K, 0)
+
+    # Plot the Nyquist curve and make sure the encirclement count is right
+    count = ct.nyquist_plot(sys * ctrl, indent_radius=1e-1)
+    assert count == -2
+
+    # As a sanity check, confirm that the closed loop system is stable
+    sys_closed = ct.feedback(sys * ctrl, 1)
+    assert np.all(sys_closed.pole().real < 0)
 
 def test_nyquist_exceptions():
     # MIMO not implemented

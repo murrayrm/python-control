@@ -547,36 +547,40 @@ def nyquist_plot(syslist, omega=None, plot=True, omega_limits=None,
         List of linear input/output systems (single system is OK). Nyquist
         curves for each system are plotted on the same graph.
 
-    plot : boolean
-        If True, plot magnitude
+    plot : bool, optional
+        If True (default), plot Nyquist plot.  Otherwise, just compute number
+        of encirclements (and optionally the Nyquist contour).
 
-    omega : array_like
-        Set of frequencies to be evaluated, in rad/sec.
+    omega : array_like, optional
+        Set of frequencies to be evaluated, in rad/sec.  If specified, no
+        additional points are added near pure imaginary poles.
 
-    omega_limits : array_like of two values
+    omega_limits : array_like of two values, optional
         Limits to the range of frequencies. Ignored if omega is provided, and
         auto-generated if omitted.
 
-    omega_num : int
-        Number of frequency samples to plot.  Defaults to
+    omega_num : int, optional
+        Minimum number of frequency samples to plot.  Additional points may be
+        added near poles to ensure proper encirclement count.  Defaults to
         config.defaults['freqplot.number_of_samples'].
 
-    color : string
+    color : string, optional
         Used to specify the color of the line and arrowhead.
 
-    mirror_style : string or False
+    mirror_style : string or False, optional
         Linestyle for mirror image of the Nyquist curve.  If `False` then
         omit completely.  Default linestyle ('--') is determined by
         config.defaults['nyquist.mirror_style'].
 
-    return_contour : bool
-        If 'True', return the contour used to evaluate the Nyquist plot.
+    return_contour : bool, optional
+        If 'True', return the portion of the contour along the positive
+        frequency axis used to evaluate the Nyquist plot.
 
-    label_freq : int
+    label_freq : int, optional
         Label every nth frequency on the plot.  If not specified, no labels
         are generated.
 
-    arrows : int or 1D/2D array of floats
+    arrows : int or 1D/2D array of floats, optional
         Specify the number of arrows to plot on the Nyquist curve.  If an
         integer is passed. that number of equally spaced arrows will be
         plotted on each of the primary segment and the mirror image.  If a 1D
@@ -586,18 +590,20 @@ def nyquist_plot(syslist, omega=None, plot=True, omega_limits=None,
         locations for the primary curve and the second row will be used for
         the mirror image.
 
-    arrow_size : float
+    arrow_size : float, optional
         Arrowhead width and length (in display coordinates).  Default value is
         8 and can be set using config.defaults['nyquist.arrow_size'].
 
-    arrow_style : matplotlib.patches.ArrowStyle
+    arrow_style : matplotlib.patches.ArrowStyle, optional
         Define style used for Nyquist curve arrows (overrides `arrow_size`).
 
-    indent_radius : float
+    indent_radius : float, optional
         Amount to indent the Nyquist contour around poles that are at or near
-        the imaginary axis.
+        the imaginary axis.  Indentation is to the left for unstable poles and
+        ot the right for stable poles.  For poles with zero real part, use
+        ``indent_direction`` to set the direction (defaults to right)
 
-    indent_direction : str
+    indent_direction : str, optional
         For poles on the imaginary axis, set the direction of indentation to
         be 'right' (default), 'left', or 'none'.
 
@@ -605,7 +611,7 @@ def nyquist_plot(syslist, omega=None, plot=True, omega_limits=None,
         If set to 'False', turn off warnings about frequencies above Nyquist.
 
     verbose : bool, optional
-        If set to 'True', turn off verbose informational messages.
+        If set to 'True', turn on verbose informational messages.
 
     *args : :func:`matplotlib.pyplot.plot` positional properties, optional
         Additional arguments for `matplotlib` plots (color, linestyle, etc)
@@ -616,8 +622,8 @@ def nyquist_plot(syslist, omega=None, plot=True, omega_limits=None,
     Returns
     -------
     count : int (or list of int if len(syslist) > 1)
-        Number of encirclements of the point -1 by the Nyquist curve.  If
-        multiple systems are given, an array of counts is returned.
+        Number of (clockwise) encirclements of the point -1 by the Nyquist
+        curve.  If multiple systems are given, an array of counts is returned.
 
     contour : ndarray (or list of ndarray if len(syslist) > 1)), optional
         The contour used to create the primary Nyquist curve segment.  To
@@ -639,6 +645,11 @@ def nyquist_plot(syslist, omega=None, plot=True, omega_limits=None,
        used to set the direction of indentation.  Setting `indent_direction`
        to `none` will turn off indentation.  If `return_contour` is True, the
        exact contour used for evaluation is returned.
+
+    3. If the range of frequencies is not given explicitly using `the
+       ``omega`` keyword, frequencies are computed automatically, with
+       increased density of points near poles to ensure proper counting (and
+       plotting) of encirclements.
 
     Examples
     --------
@@ -690,6 +701,7 @@ def nyquist_plot(syslist, omega=None, plot=True, omega_limits=None,
     if not hasattr(syslist, '__iter__'):
         syslist = (syslist,)
 
+    omega_given = True if omega is not None else False
     omega, omega_range_given = _determine_omega_vector(
         syslist, omega, omega_limits, omega_num)
     if not omega_range_given:
@@ -733,21 +745,29 @@ def nyquist_plot(syslist, omega=None, plot=True, omega_limits=None,
                 splane_poles = np.log(zplane_poles)/sys.dt
 
             # Add extra sample points near any poles on the (+ive) imag axis
-            for s in splane_poles[(splane_poles.imag >= 0)]:
-                if verbose:
-                    print("Adding points near pole at s = ", s)
+            if not omega_given:
+                for s in splane_poles[(splane_poles.imag >= 0)]:
+                    if verbose:
+                        print("Adding points near pole at s = ", s)
 
-                # Get rid of nearby points and add points around the pole
-                omega_sys = np.concatenate((
-                    np.delete(omega_sys,
-                              np.abs(omega_sys - s.imag) < indent_radius),
-                    np.linspace(
-                        s.imag - indent_radius if s.imag > indent_radius else 0,
-                        s.imag + indent_radius, indent_points)
-                ))
+                    # Get rid of nearby points + add points around the pole
+                    omega_sys = np.concatenate((
+                        np.delete(
+                            omega_sys,
+                            np.abs(omega_sys - s.imag) < indent_radius),
+                        np.linspace(
+                            s.imag - indent_radius if \
+                            s.imag > indent_radius else 0,
+                            s.imag + indent_radius, indent_points)
+                    ))
 
-            # Re-sort the points on the contour
-            omega_sys.sort()
+                # Re-sort the points on the contour
+                omega_sys.sort()
+
+            # If an explicit range of omega was given, restrict to that
+            if omega_limits is not None:
+                omega_sys = omega_sys[(omega_sys >= omega_limits[0]) &
+                                      (omega_sys <= omega_limits[-1])]
 
             # Map the contour to the complex plane so that we can indent
             splane_contour = 1j * omega_sys

@@ -79,7 +79,7 @@ def test_nyquist_basic(ss_siso):
     nyquist_plot(tf_siso)
     count, contour = nyquist_plot(
         tf_siso, plot=False, return_contour=True, omega_num=20)
-    assert len(contour) == 20
+    assert len(contour) >= 20
 
     count, contour = nyquist_plot(
         tf_siso, plot=False, omega_limits=(1, 100), return_contour=True)
