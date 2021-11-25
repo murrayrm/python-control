@@ -13,6 +13,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import control as ct
 import control.matlab as matlab
+from control.tests.conftest import slycotonly
 
 pytestmark = pytest.mark.usefixtures("mplcleanup")
 
@@ -237,6 +238,7 @@ def test_nyquist_indent():
     assert _Z(sys) == count + _P(sys)
 
 # Test to make sure that unstable systems are handled correctly
+@slycotonly
 def test_nyquist_unstable():
     # Create a system with unstable complex poles
     sys = ct.ss(ct.tf(*matlab.zpk2tf(
