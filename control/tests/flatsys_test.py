@@ -8,7 +8,7 @@ testing of operations on flat systems.  Separate unit tests should be
 created for that purpose.
 """
 
-from distutils.version import StrictVersion
+import packaging.version as version
 
 import numpy as np
 import pytest
@@ -119,7 +119,7 @@ class TestFlatSys:
         np.testing.assert_array_almost_equal(resp.states, xd, decimal=2)
 
         # For SciPy 1.0+, integrate equations and compare to desired
-        if StrictVersion(sp.__version__) >= "1.0":
+        if version.parse(sp.__version__) >= version.parse('1.0'):
             t, y, x = ct.input_output_response(
                 vehicle_flat, T, ud, x0, return_x=True)
             np.testing.assert_allclose(x, xd, atol=0.01, rtol=0.01)

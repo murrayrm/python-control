@@ -1,7 +1,7 @@
 """timeresp_test.py - test time response functions"""
 
 from copy import copy
-from distutils.version import StrictVersion
+import packaging.version as version
 
 import numpy as np
 import pytest
@@ -521,8 +521,9 @@ class TestTimeresp:
         _t, yy = impulse_response(sys, T=t, input=0)
         np.testing.assert_array_almost_equal(yy[:,0,:], yref_notrim, decimal=4)
 
-    @pytest.mark.skipif(StrictVersion(sp.__version__) < "1.3",
-                        reason="requires SciPy 1.3 or greater")
+    @pytest.mark.skipif(
+        version.parse(sp.__version__) < version.parse('1.3'),
+        reason="requires SciPy 1.3 or greater")
     @pytest.mark.parametrize("tsystem", ["siso_tf1"], indirect=True)
     def test_discrete_time_impulse(self, tsystem):
         # discrete time impulse sampled version should match cont time
@@ -999,7 +1000,7 @@ class TestTimeresp:
     ])
     def test_squeeze(self, fcn, nstate, nout, ninp, squeeze, shape1, shape2):
         # Figure out if we have SciPy 1+
-        scipy0 = StrictVersion(sp.__version__) < '1.0'
+        scipy0 = version.parse(sp.__version__) < version.parse('1.0')
 
         # Define the system
         if fcn == ct.tf and (nout > 1 or ninp > 1) and not slycot_check():
