@@ -9,6 +9,7 @@ from ipython to generate plots interactively.
 """
 
 import pytest
+import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 import control as ct
@@ -225,10 +226,11 @@ def test_nyquist_encirclements():
     sys = 1 / (s**2 + s + 1)
     with pytest.warns(UserWarning, match="encirclements was a non-integer"):
         count = ct.nyquist_plot(sys, omega_limits=[0.5, 1e3])
-    with pytest.warns(None) as records:
+    with warnings.catch_warnings():
+        warnings.simplefilter('error')
         count = ct.nyquist_plot(
             sys, omega_limits=[0.5, 1e3], encirclement_threshold=0.2)
-    assert len(records) == 0
+
     plt.title("Non-integer number of encirclements [%g]" % count)
 
 
@@ -368,7 +370,7 @@ def test_discrete_nyquist():
     # Make sure we can handle discrete time systems with negative poles
     sys = ct.tf(1, [1, -0.1], dt=1) * ct.tf(1, [1, 0.1], dt=1)
     ct.nyquist_plot(sys)
-    
+
 if __name__ == "__main__":
     #
     # Interactive mode: generate plots for manual viewing
@@ -423,6 +425,3 @@ if __name__ == "__main__":
     plt.title("Discrete-time; poles: %s" %
               np.array2string(sys.poles(), precision=2, separator=','))
     count = ct.nyquist_plot(sys)
-
-    
-

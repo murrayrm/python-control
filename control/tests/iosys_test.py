@@ -12,6 +12,7 @@ import re
 
 import numpy as np
 import pytest
+import warnings
 
 import control as ct
 from control import iosys as ios
@@ -1433,11 +1434,9 @@ class TestIOSys:
         nlios2 = ios.NonlinearIOSystem(None,
                                        lambda t, x, u, params: u * u,
                                        inputs=1, outputs=1, name="nlios2")
-        with pytest.warns(None) as record:
+        with warnings.catch_warnings():
             ct.InterconnectedSystem([nlios1, iosys_siso, nlios2],
                                     inputs=0, outputs=0, states=0)
-        if record:
-            pytest.fail("Warning not expected: " + record[0].message)
 
 
 def test_linear_interconnection():
@@ -1596,7 +1595,13 @@ def test_interconnect_unused_input():
                             inputs=['r'],
                             outputs=['y'])
 
-    with pytest.warns(None) as record:
+    with warnings.catch_warnings():
+        # Generate an error is any warnings appear
+        warnings.simplefilter('error')
+
+        # Ignore NumPy matrix warnings
+        warnings.filterwarnings('ignore', message=r'.*matrix subclass')
+
         # no warning if output explicitly ignored, various argument forms
         h = ct.interconnect([g,s,k],
                             inputs=['r'],
@@ -1611,15 +1616,6 @@ def test_interconnect_unused_input():
         # no warning if auto-connect disabled
         h = ct.interconnect([g,s,k],
                             connections=False)
-
-        #https://docs.pytest.org/en/6.2.x/warnings.html#recwarn
-        for r in record:
-            # strip out matrix warnings
-            if re.match(r'.*matrix subclass', str(r.message)):
-                continue
-            print(r.message)
-            pytest.fail(f'Unexpected warning: {r.message}')
-
 
     # warn if explicity ignored input in fact used
     with pytest.warns(
@@ -1674,7 +1670,10 @@ def test_interconnect_unused_output():
 
 
     # no warning if output explicitly ignored
-    with pytest.warns(None) as record:
+    with warnings.catch_warnings():
+        # ignore matrix warnings
+        warnings.filterwarnings('ignore', message=r'.*matrix subclass')
+
         h = ct.interconnect([g,s,k],
                             inputs=['r'],
                             outputs=['y'],
@@ -1688,14 +1687,6 @@ def test_interconnect_unused_output():
         # no warning if auto-connect disabled
         h = ct.interconnect([g,s,k],
                             connections=False)
-
-        #https://docs.pytest.org/en/6.2.x/warnings.html#recwarn
-        for r in record:
-            # strip out matrix warnings
-            if re.match(r'.*matrix subclass', str(r.message)):
-                continue
-            print(r.message)
-            pytest.fail(f'Unexpected warning: {r.message}')
 
     # warn if explicity ignored output in fact used
     with pytest.warns(
