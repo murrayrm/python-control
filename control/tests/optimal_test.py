@@ -366,8 +366,8 @@ def test_optimal_logging(capsys):
     x0 = [-1, 1]
 
     # Solve it, with logging turned on (with warning due to mixed constraints)
-    with pytest.warns(sp.optimize.optimize.OptimizeWarning,
-                        match="Equality and inequality .* same element"):
+    with pytest.warns(sp.optimize.OptimizeWarning,
+                      match="Equality and inequality .* same element"):
         res = opt.solve_ocp(
             sys, time, x0, cost, input_constraint, terminal_cost=cost,
             terminal_constraints=state_constraint, log=True)
