@@ -55,12 +55,14 @@ jobs:
         PYTHON_CONTROL_ARRAY_AND_MATRIX: ${{ matrix.array-and-matrix }}
       run: |
         source $CONDA/bin/activate test-environment
+        conda list
+        apt list --installed
         # Use xvfb-run instead of pytest-xvfb to get proper mpl backend
         # Use coverage instead of pytest-cov to get .coverage file
         # See https://github.com/python-control/python-control/pull/504
         # xvfb-run --auto-servernum coverage run -m pytest control/tests
-        # xvfb-run --auto-servernum pytest control/tests
-        pytest control/tests
+        xvfb-run --auto-servernum pytest control/tests
+        # pytest control/tests
 
     - name: Coveralls parallel
       # https://github.com/coverallsapp/github-action
