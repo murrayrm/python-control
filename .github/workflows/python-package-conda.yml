@@ -36,7 +36,7 @@ jobs:
 
         # Install test tools
         conda install pip coverage pytest pytest-timeout
-        pip install coveralls
+        pip install coveralls pytest-xvfb
 
         # Install python-control dependencies
         conda install numpy matplotlib scipy
@@ -59,7 +59,8 @@ jobs:
         # Use coverage instead of pytest-cov to get .coverage file
         # See https://github.com/python-control/python-control/pull/504
         # xvfb-run --auto-servernum coverage run -m pytest control/tests
-        xvfb-run --auto-servernum pytest control/tests
+        # xvfb-run --auto-servernum pytest control/tests
+        pytest control/tests
 
     - name: Coveralls parallel
       # https://github.com/coverallsapp/github-action
