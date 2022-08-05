@@ -17,6 +17,8 @@ jobs:
       run: |
         # Set up conda
         echo $CONDA/bin >> $GITHUB_PATH
+        conda create -q -n test-environment python=3.9
+        source $CONDA/bin/activate test-environment
 
         # Set up (virtual) X11
         sudo apt install -y xvfb
@@ -43,6 +45,7 @@ jobs:
         # Install compilers, libraries, and development environment
         sudo apt-get -y install gfortran cmake --fix-missing
         sudo apt-get -y install libblas-dev liblapack-dev
+        source $CONDA/bin/activate test-environment
         conda install -c conda-forge scikit-build setuptools-scm
 
         # Compile and install slycot
@@ -51,6 +54,7 @@ jobs:
     - name: Test with pytest
       working-directory: python-control
       run: |
+        source $CONDA/bin/activate test-environment
         conda list
         apt list --installed
         xvfb-run --auto-servernum pytest control/tests
