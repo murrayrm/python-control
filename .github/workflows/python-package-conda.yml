@@ -39,7 +39,7 @@ jobs:
         pip install coveralls pytest-xvfb
 
         # Install python-control dependencies
-        conda install numpy matplotlib scipy
+        conda install numpy matplotlib scipy pyqt
         if [[ '${{matrix.slycot}}' == 'conda' ]]; then
           conda install -c conda-forge slycot
         fi
@@ -57,6 +57,7 @@ jobs:
         source $CONDA/bin/activate test-environment
         conda list
         apt list --installed
+        export MPLBACKEND=qtagg
         # Use xvfb-run instead of pytest-xvfb to get proper mpl backend
         # Use coverage instead of pytest-cov to get .coverage file
         # See https://github.com/python-control/python-control/pull/504
