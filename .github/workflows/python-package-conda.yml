@@ -35,16 +35,16 @@ jobs:
         sudo apt install -y xvfb
 
         # Install test tools
-        conda install pip coverage pytest pytest-timeout
+        conda install -c conda-forge pip coverage pytest pytest-timeout
         pip install coveralls
 
         # Install python-control dependencies
-        conda install numpy matplotlib scipy
+        conda install -c conda-forge numpy matplotlib scipy
         if [[ '${{matrix.slycot}}' == 'conda' ]]; then
           conda install -c conda-forge slycot
         fi
         if [[ '${{matrix.pandas}}' == 'conda' ]]; then
-          conda install pandas
+          conda install -c conda-forge pandas
         fi
         if [[ '${{matrix.cvxopt}}' == 'conda' ]]; then
           conda install -c conda-forge cvxopt
