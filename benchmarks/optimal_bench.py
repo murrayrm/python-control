@@ -21,7 +21,6 @@ integrator_table = {
     'RK23': ('RK23', {}),
     'RK23_sloppy': ('RK23', {'atol': 1e-4, 'rtol': 1e-2}),
     'RK45': ('RK45', {}),
-    'RK45': ('RK45', {}),
     'RK45_sloppy': ('RK45', {'atol': 1e-4, 'rtol': 1e-2}),
     'LSODA': ('LSODA', {}),
 }

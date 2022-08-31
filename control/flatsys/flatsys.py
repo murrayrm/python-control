@@ -243,7 +243,7 @@ def _basis_flag_matrix(sys, basis, flag, t):
     column of the matrix corresponds to a basis function and each row is a
     derivative, with the derivatives (flag) for each output stacked on top
     of each other.
-l
+
     """
     flagshape = [len(f) for f in flag]
     M = np.zeros((sum(flagshape),
@@ -354,6 +354,10 @@ def point_to_point(
     T0 = timepts[0] if len(timepts) > 1 else T0
 
     # Process keyword arguments
+    if cost is None:
+        # optimal.py compatibility
+        cost = kwargs.pop('trajectory_cost', None)
+
     if trajectory_constraints is None:
         # Backwards compatibility
         trajectory_constraints = kwargs.pop('constraints', None)
@@ -775,7 +779,7 @@ def solve_flat_ocp(
                 x, u = sys.reverse(zflag, params)
 
                 # Evaluate the cost at this time point
-                # TODO: make use of time interval
+                # TODO: make consistent with optimal.py integral cost
                 costval += trajectory_cost(x, u) * (timepts[i+1] - timepts[i])
 
         # Evaluate the terminal_cost
@@ -812,6 +816,7 @@ def solve_flat_ocp(
                 M_t = Mt_list[i]
 
                 # Compute flag at this time point
+                # TODO: use list to allow for non-homogeneous flag
                 zflag = (M_t @ coeffs).reshape(sys.ninputs, -1)
 
                 # Find states and inputs at the time points

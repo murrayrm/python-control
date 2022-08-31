@@ -1123,18 +1123,24 @@ def quadratic_cost(sys, Q, R, x0=0, u0=0):
     """
     # Process the input arguments
     if Q is not None:
-        Q = np.atleast_2d(Q)
+        Q = np.atleast_2d(Q).astype(float)
         if Q.size == 1:         # allow scalar weights
             Q = np.eye(sys.nstates) * Q.item()
         elif Q.shape != (sys.nstates, sys.nstates):
             raise ValueError("Q matrix is the wrong shape")
 
+        # Broadcast x0 to correct shape for compatibility with numba
+        x0 = np.broadcast_to(x0, sys.nstates).astype(float)
+
     if R is not None:
-        R = np.atleast_2d(R)
+        R = np.atleast_2d(R).astype(float)
         if R.size == 1:         # allow scalar weights
             R = np.eye(sys.ninputs) * R.item()
         elif R.shape != (sys.ninputs, sys.ninputs):
             raise ValueError("R matrix is the wrong shape")
+
+        # Broadcast u0 to correct shape for compatibility with numba
+        u0 = np.broadcast_to(u0, sys.ninputs).astype(float)
 
     if Q is None:
         return lambda x, u: ((u-u0) @ R @ (u-u0)).item()

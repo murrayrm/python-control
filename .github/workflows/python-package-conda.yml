@@ -8,6 +8,7 @@ jobs:
       Py${{ matrix.python-version }};
       ${{ matrix.slycot || 'no' }} Slycot;
       ${{ matrix.pandas || 'no' }} Pandas;
+      ${{ matrix.numba || 'no' }} Numba;
       ${{ matrix.cvxopt || 'no' }} CVXOPT
       ${{ matrix.array-and-matrix == 1 && '; array and matrix' || '' }}
       ${{ matrix.mplbackend && format('; {0}', matrix.mplbackend) }}
@@ -21,12 +22,14 @@ jobs:
         slycot: ["", "conda"]
         pandas: [""]
         cvxopt: ["", "conda"]
+        numba: [""]
         mplbackend: [""]
         array-and-matrix: [0]
         include:
           - python-version: '3.11'
             slycot: conda
             pandas: conda
+            numba: conda
             cvxopt: conda
             mplbackend: QtAgg
             array-and-matrix: 1
@@ -58,6 +61,9 @@ jobs:
         fi
         if [[ '${{matrix.pandas}}' == 'conda' ]]; then
           mamba install pandas
+        fi
+        if [[ '${{matrix.numba}}' == 'conda' ]]; then
+          mamba install numba
         fi
 
     - name: Test with pytest

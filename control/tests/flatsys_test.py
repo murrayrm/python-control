@@ -137,7 +137,7 @@ class TestFlatSys:
         "basis, guess, constraints, method", [
         (fs.PolyFamily(8, T=10), 'prev', None, None),
         (fs.BezierFamily(8, T=10), 'linear', None, None),
-        (fs.BSplineFamily([0, 10], 8), None, None, None),
+        (fs.BSplineFamily([0, 10], 8), 'linear', None, None),
         (fs.BSplineFamily([0, 10], 8), 'prev', None, 'trust-constr'),
         (fs.BSplineFamily([0, 10], [6, 8], vars=2), 'prev', None, None),
         (fs.BSplineFamily([0, 5, 10], 5), 'linear', None, 'slsqp'),
@@ -176,7 +176,7 @@ class TestFlatSys:
         terminal_cost = opt.quadratic_cost(
             vehicle_flat, 1e3 * np.eye(3), None, x0=xf)
 
-        # Implement terminal constraints if specified
+        # Implement trajectory constraints if specified
         if constraints:
             input_constraints = opt.input_range_constraint(
                 vehicle_flat, *constraints)
@@ -290,7 +290,6 @@ class TestFlatSys:
         assert np.any(np.abs(x - x_cost) > 0.1)
 
         # Re-solve with constraint on the y deviation
-        lb, ub = [-2, -0.1], [2, 0]
         lb, ub = [-2, np.min(x_cost[1])*0.95], [2, 1]
         constraints = [opt.state_range_constraint(flat_sys, lb, ub)]
 
@@ -330,7 +329,7 @@ class TestFlatSys:
         np.testing.assert_almost_equal(u_const, u_nlconst, decimal=2)
 
     @pytest.mark.parametrize("basis", [
-        # fs.PolyFamily(8),
+        #! fs.PolyFamily(8),
         fs.BSplineFamily([0, 3, 7, 10], 5, 2)])
     def test_flat_solve_ocp(self, basis):
         # Double integrator system
@@ -341,12 +340,12 @@ class TestFlatSys:
         x0 = [1, 0]; u0 = [0]
         xf = [-1, 0]; uf = [0]
         Tf = 10
-        T = np.linspace(0, Tf, 100)
+        timepts = np.linspace(0, Tf, 10)
 
         # Find trajectory between initial and final conditions
         traj = fs.point_to_point(
             flat_sys, Tf, x0, u0, xf, uf, basis=basis)
-        x, u = traj.eval(T)
+        x, u = traj.eval(timepts)
 
         np.testing.assert_array_almost_equal(x0, x[:, 0])
         np.testing.assert_array_almost_equal(u0, u[:, 0])
@@ -354,7 +353,6 @@ class TestFlatSys:
         np.testing.assert_array_almost_equal(uf, u[:, -1])
 
         # Solve with a terminal cost function
-        timepts = np.linspace(0, Tf, 10)
         terminal_cost = opt.quadratic_cost(
             flat_sys, 1e3, 1e3, x0=xf, u0=uf)
 
@@ -363,11 +361,11 @@ class TestFlatSys:
             terminal_cost=terminal_cost, basis=basis)
 
         # Verify that the trajectory computation is correct
-        x_cost, u_cost = traj_cost.eval(T)
+        x_cost, u_cost = traj_cost.eval(timepts)
         np.testing.assert_array_almost_equal(x0, x_cost[:, 0])
         np.testing.assert_array_almost_equal(u0, u_cost[:, 0])
-        np.testing.assert_array_almost_equal(xf, x_cost[:, -1])
-        np.testing.assert_array_almost_equal(uf, u_cost[:, -1])
+        np.testing.assert_array_almost_equal(xf, x_cost[:, -1], decimal=2)
+        np.testing.assert_array_almost_equal(uf, u_cost[:, -1], decimal=2)
 
         # Solve with trajectory and terminal cost functions
         trajectory_cost = opt.quadratic_cost(flat_sys, 0, 1, x0=xf, u0=uf)
@@ -377,7 +375,7 @@ class TestFlatSys:
             trajectory_cost=trajectory_cost, basis=basis)
 
         # Verify that the trajectory computation is correct
-        x_cost, u_cost = traj_cost.eval(T)
+        x_cost, u_cost = traj_cost.eval(timepts)
         np.testing.assert_array_almost_equal(x0, x_cost[:, 0])
         np.testing.assert_array_almost_equal(u0, u_cost[:, 0])
 
@@ -388,7 +386,7 @@ class TestFlatSys:
         assert np.any(np.abs(x - x_cost) > 0.1)
 
         # Re-solve with constraint on the y deviation
-        lb, ub = [-2, np.min(x_cost[1])*0.95], [2, 1]
+        lb, ub = [-2, np.min(x_cost[1]) * 0.95], [2, 1]
         constraints = [opt.state_range_constraint(flat_sys, lb, ub)]
 
         # Make sure that the previous solution violated at least one constraint
