@@ -262,7 +262,7 @@ def _basis_flag_matrix(sys, basis, flag, t):
 # Solve a point to point trajectory generation problem for a flat system
 def point_to_point(
         sys, timepts, x0=0, u0=0, xf=0, uf=0, T0=0, cost=None, basis=None,
-        trajectory_constraints=None, initial_guess=None, params=None, **kwargs):
+        constraints=None, initial_guess=None, params=None, **kwargs):
     """Compute trajectory between an initial and final conditions.
 
     Compute a feasible trajectory for a differentially flat system between an
@@ -301,7 +301,7 @@ def point_to_point(
         Function that returns the integral cost given the current state
         and input.  Called as `cost(x, u)`.
 
-    trajectory_constraints : list of tuples, optional
+    constraints : list of tuples, optional
         List of constraints that should hold at each point in the time vector.
         Each element of the list should consist of a tuple with first element
         given by :class:`scipy.optimize.LinearConstraint` or
@@ -358,9 +358,9 @@ def point_to_point(
         # optimal.py compatibility
         cost = kwargs.pop('trajectory_cost', None)
 
-    if trajectory_constraints is None:
+    if constraints is None:
         # Backwards compatibility
-        trajectory_constraints = kwargs.pop('constraints', None)
+        constraints = kwargs.pop('trajectory_constraints', None)
 
     minimize_kwargs = {}
     minimize_kwargs['method'] = kwargs.pop('minimize_method', None)
@@ -386,11 +386,11 @@ def point_to_point(
     ncoefs = sum([basis.var_ncoefs(i) for i in range(sys.ninputs)])
     if ncoefs < 2 * (sys.nstates + sys.ninputs):
         raise ValueError("basis set is too small")
-    elif (cost is not None or trajectory_constraints is not None) and \
+    elif (cost is not None or constraints is not None) and \
          ncoefs == 2 * (sys.nstates + sys.ninputs):
         warnings.warn("minimal basis specified; optimization not possible")
         cost = None
-        trajectory_constraints = None
+        constraints = None
 
     # Figure out the parameters to use, if any
     params = sys.params if params is None else params
@@ -439,7 +439,12 @@ def point_to_point(
     if rank < Z.size:
         warnings.warn("basis too small; solution may not exist")
 
-    if cost is not None or trajectory_constraints is not None:
+    if cost is not None or constraints is not None:
+        # Check to make sure we were given a suitable list of time points
+        # (first and last points are constrained by point_to_point)
+        if timepts.size < 3:
+            warnings.warn("no intermediate points given for cost/constraints")
+
         # Search over the null space to minimize cost/satisfy constraints
         N = sp.linalg.null_space(M)
 
@@ -473,7 +478,7 @@ def point_to_point(
             traj_cost = lambda coeffs: coeffs @ coeffs
 
         # Process the constraints we were given
-        traj_constraints = trajectory_constraints
+        traj_constraints = constraints
         if traj_constraints is None:
             traj_constraints = []
         elif isinstance(traj_constraints, tuple):
@@ -551,7 +556,7 @@ def point_to_point(
 
     # Create a trajectory object to store the result
     systraj = SystemTrajectory(sys, basis, params=params)
-    if cost is not None or trajectory_constraints is not None:
+    if cost is not None or constraints is not None:
         # Store the result of the optimization
         systraj.cost = res.fun
         systraj.success = res.success

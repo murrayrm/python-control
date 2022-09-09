@@ -92,7 +92,7 @@ zf = vehicle_forward(x0, u0)
 
 def quadratic_cost(sys, Q, R, x0=None, u0=None):
     if Q is not None or x0 is not None:
-        raise NotImplemented("Q, x0 not supported")
+        raise NotImplementedError("Q, x0 not supported")
 
     # Set the cost based on flat variables
     Qlist = [np.zeros((sys.flaglen[i], sys.flaglen[i])) for i in [0, 1]]

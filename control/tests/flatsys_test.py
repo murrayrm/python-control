@@ -519,6 +519,12 @@ class TestFlatSys:
         np.testing.assert_array_almost_equal(xf, x[:, -1])
         np.testing.assert_array_almost_equal(uf, u[:, -1])
 
+        # Cost without a list of time points
+        with pytest.warns(UserWarning, match="no intermediate points given"):
+            traj = fs.point_to_point(
+                flat_sys, Tf, x0, u0, xf, uf, cost=cost_fcn,
+                basis=fs.PolyFamily(8))
+
         # Try to optimize with insufficient degrees of freedom
         with pytest.warns(UserWarning, match="optimization not possible"):
             traj = fs.point_to_point(
