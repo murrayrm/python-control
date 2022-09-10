@@ -207,7 +207,7 @@ class TestFlatSys:
 
         # Make sure the constraints are satisfied
         if input_constraints:
-            _, _, lb, ub = input_constraints
+            lb, ub = input_constraints.lb, input_constraints.ub
             for i in range(ud.shape[0]):
                 assert all(lb[i] - ud[i] < rtol * abs(lb[i]) + atol)
                 assert all(ud[i] - ub[i] < rtol * abs(ub[i]) + atol)

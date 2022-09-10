@@ -47,6 +47,7 @@ from .poly import PolyFamily
 from .systraj import SystemTrajectory
 from ..iosys import NonlinearIOSystem
 from ..timeresp import _check_convert_array
+from ..optimal import _process_constraints
 
 
 # Flat system class (for use as a base class)
@@ -303,17 +304,16 @@ def point_to_point(
 
     constraints : list of tuples, optional
         List of constraints that should hold at each point in the time vector.
-        Each element of the list should consist of a tuple with first element
-        given by :class:`scipy.optimize.LinearConstraint` or
-        :class:`scipy.optimize.NonlinearConstraint` and the remaining
-        elements of the tuple are the arguments that would be passed to those
-        functions.  The following tuples are supported:
+        Each list element should be a :meth:`~scipy.optimize.LinearConstraint`
+        or :meth:`~scipy.optimize.NonlinearConstraint` with appropriate
+        arguments.  The constraints will be applied at each time point along
+        the trajectory. The following types of constraints are supported:
 
-        * (LinearConstraint, A, lb, ub): The matrix A is multiplied by stacked
+        * LinearConstraint(A, lb, ub): The matrix A is multiplied by stacked
           vector of the state and input at each point on the trajectory for
           comparison against the upper and lower bounds.
 
-        * (NonlinearConstraint, fun, lb, ub): a user-specific constraint
+        * NonlinearConstraint(fun, lb, ub): a user-specific constraint
           function `fun(x, u)` is called at each point along the trajectory
           and compared against the upper and lower bounds.
 
@@ -478,14 +478,7 @@ def point_to_point(
             traj_cost = lambda coeffs: coeffs @ coeffs
 
         # Process the constraints we were given
-        traj_constraints = constraints
-        if traj_constraints is None:
-            traj_constraints = []
-        elif isinstance(traj_constraints, tuple):
-            # TODO: Check to make sure this is really a constraint
-            traj_constraints = [traj_constraints]
-        elif not isinstance(traj_constraints, list):
-            raise TypeError("trajectory constraints must be a list")
+        traj_constraints = _process_constraints(constraints)
 
         # Process constraints
         minimize_constraints = []
@@ -623,17 +616,16 @@ def solve_flat_ocp(
 
     trajectory_constraints : list of tuples, optional
         List of constraints that should hold at each point in the time vector.
-        Each element of the list should consist of a tuple with first element
-        given by :class:`scipy.optimize.LinearConstraint` or
-        :class:`scipy.optimize.NonlinearConstraint` and the remaining
-        elements of the tuple are the arguments that would be passed to those
-        functions.  The following tuples are supported:
+        Each list element should be a :meth:`~scipy.optimize.LinearConstraint`
+        or :meth:`~scipy.optimize.NonlinearConstraint` with appropriate
+        arguments.  The constraints will be applied at each time point along
+        the trajectory. The following types of constraints are supported:
 
-        * (LinearConstraint, A, lb, ub): The matrix A is multiplied by stacked
+        * LinearConstraint(A, lb, ub): The matrix A is multiplied by stacked
           vector of the state and input at each point on the trajectory for
           comparison against the upper and lower bounds.
 
-        * (NonlinearConstraint, fun, lb, ub): a user-specific constraint
+        * NonlinearConstraint(fun, lb, ub): a user-specific constraint
           function `fun(x, u)` is called at each point along the trajectory
           and compared against the upper and lower bounds.
 
@@ -797,14 +789,7 @@ def solve_flat_ocp(
         return costval
 
     # Process the constraints we were given
-    traj_constraints = trajectory_constraints
-    if traj_constraints is None:
-        traj_constraints = []
-    elif isinstance(traj_constraints, tuple):
-        # TODO: Check to make sure this is really a constraint
-        traj_constraints = [traj_constraints]
-    elif not isinstance(traj_constraints, list):
-        raise TypeError("trajectory constraints must be a list")
+    traj_constraints = _process_constraints(trajectory_constraints)
 
     # Process constraints
     minimize_constraints = []
