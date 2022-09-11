@@ -31,7 +31,7 @@ def test_bspline_basis():
                   Tf/3, Tf/2,
                    Tf, Tf, Tf, Tf, Tf, Tf])])
 
-    # Repeat with default smoothness
+    # Repeat with default continuity
     bspline = fs.BSplineFamily([0, Tf/3, Tf/2, Tf], degree)
     np.testing.assert_equal(
         bspline.knotpoints,
@@ -194,7 +194,7 @@ def test_bspline_errors():
     with pytest.raises(ValueError, match="must be strictly increasing"):
         basis = fs.BSplineFamily([1, 3, 2], 2)
 
-    # Smoothness can't be more than dimension of splines
+    # Continuity can't be more than dimension of splines
     basis = fs.BSplineFamily([0, 1], 4, 3)      # OK
     with pytest.raises(ValueError, match="degree must be greater"):
         basis = fs.BSplineFamily([0, 1], 4, 4)  # not OK
@@ -203,11 +203,11 @@ def test_bspline_errors():
     with pytest.raises(TypeError, match="vars must be an integer"):
         basis = fs.BSplineFamily([0, 1], 4, 3, vars=['x1', 'x2'])
 
-    # degree, smoothness must match nvars
+    # degree, continuity must match nvars
     with pytest.raises(ValueError, match="length of 'degree' does not match"):
         basis = fs.BSplineFamily([0, 1], [4, 4, 4], 3, vars=2)
 
-    # degree, smoothness must be list of ints
+    # degree, continuity must be list of ints
     basis = fs.BSplineFamily([0, 1], [4, 4], 3, vars=2) # OK
     with pytest.raises(ValueError, match="could not parse 'degree'"):
         basis = fs.BSplineFamily([0, 1], [4, '4'], 3, vars=2)
@@ -216,6 +216,6 @@ def test_bspline_errors():
     with pytest.raises(ValueError, match="'degree'; must be at least 1"):
         basis = fs.BSplineFamily([0, 1], 0, 1)
 
-    # smoothness must be non-negative
-    with pytest.raises(ValueError, match="'smoothness'; must be at least 0"):
+    # continuity must be non-negative
+    with pytest.raises(ValueError, match="'continuity'; must be at least 0"):
         basis = fs.BSplineFamily([0, 1], 2, -1)

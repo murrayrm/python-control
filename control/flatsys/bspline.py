@@ -3,7 +3,7 @@
 #
 # This class implements a set of B-spline basis functions that implement a
 # piecewise polynomial at a set of breakpoints t0, ..., tn with given orders
-# and smoothness.
+# and continuity.
 #
 
 import numpy as np
@@ -14,9 +14,9 @@ class BSplineFamily(BasisFamily):
     """B-spline basis functions.
 
     This class represents a B-spline basis for piecewise polynomials defined
-    across a set of breakpoints with given degree and smoothness.  On each
+    across a set of breakpoints with given degree and continuity.  On each
     interval between two breakpoints, we have a polynomial of a given degree
-    and the spline is continuous up to a given smoothness at interior
+    and the spline is continuous up to a given continuity at interior
     breakpoints.
 
     Parameters
@@ -30,8 +30,8 @@ class BSplineFamily(BasisFamily):
         variable is specified, the same degree is used for each spline
         variable.
 
-    smoothness : int or list of ints
-        For each spline variable, the smoothness at breakpoints (number of
+    continuity : int or list of ints
+        For each spline variable, the continuity at breakpoints (number of
         derivatives that should match).
 
     vars : None or int, optional
@@ -41,7 +41,7 @@ class BSplineFamily(BasisFamily):
         index using the `var` keyword.
 
     """
-    def __init__(self, breakpoints, degree, smoothness=None, vars=None):
+    def __init__(self, breakpoints, degree, continuity=None, vars=None):
         """Create a B-spline basis for piecewise smooth polynomials."""
         # Process the breakpoints for the spline */
         breakpoints = np.array(breakpoints, dtype=float)
@@ -66,11 +66,11 @@ class BSplineFamily(BasisFamily):
             self.nvars = nvars
 
         #
-        # Process B-spline parameters (degree, smoothness)
+        # Process B-spline parameters (degree, continuity)
         #
         # B-splines are defined on a set of intervals separated by
         # breakpoints.  On each interval we have a polynomial of a certain
-        # degree and the spline is continuous up to a given smoothness at
+        # degree and the spline is continuous up to a given continuity at
         # breakpoints.  The code in this section allows some flexibility in
         # the way that all of this information is supplied, including using
         # scalar values for parameters (which are then broadcast to each
@@ -78,7 +78,7 @@ class BSplineFamily(BasisFamily):
         # information, when possible.
         #
 
-        # Utility function for broadcasting spline params (degree, smoothness)
+        # Utility function for broadcasting spline params (degree, continuity)
         def process_spline_parameters(
             values, length, allowed_types, minimum=0,
             default=None, name='unknown'):
@@ -115,19 +115,19 @@ class BSplineFamily(BasisFamily):
         degree = process_spline_parameters(
             degree, nvars, (int), name='degree', minimum=1)
 
-        # Smoothness at breakpoints; set default to degree - 1 (max possible)
-        smoothness = process_spline_parameters(
-            smoothness, nvars, (int), name='smoothness', minimum=0,
+        # Continuity at breakpoints; set default to degree - 1 (max possible)
+        continuity = process_spline_parameters(
+            continuity, nvars, (int), name='continuity', minimum=0,
             default=[d - 1 for d in degree])
 
-        # Make sure degree is sufficent for the level of smoothness
-        if any([degree[i] - smoothness[i] < 1 for i in range(nvars)]):
-            raise ValueError("degree must be greater than smoothness")
+        # Make sure degree is sufficent for the level of continuity
+        if any([degree[i] - continuity[i] < 1 for i in range(nvars)]):
+            raise ValueError("degree must be greater than continuity")
 
         # Store the parameters for the spline (self.nvars already stored)
         self.breakpoints = breakpoints
         self.degree = degree
-        self.smoothness = smoothness
+        self.continuity = continuity
 
         #
         # Compute parameters for a SciPy BSpline object
@@ -135,7 +135,7 @@ class BSplineFamily(BasisFamily):
         # To create a B-spline, we need to compute the knotpoints, keeping
         # track of the use of repeated knotpoints at the initial knot and
         # final knot as well as repeated knots at intermediate points
-        # depending on the desired smoothness.
+        # depending on the desired continuity.
         #
 
         # Store the coefficients for each output (useful later)
@@ -143,7 +143,7 @@ class BSplineFamily(BasisFamily):
         for i in range(nvars):
             # Compute number of coefficients for the piecewise polynomial
             ncoefs = (self.degree[i] + 1) * (len(self.breakpoints) - 1) - \
-                (self.smoothness[i] + 1) * (len(self.breakpoints) - 2)
+                (self.continuity[i] + 1) * (len(self.breakpoints) - 2)
 
             self.coef_offset.append(offset)
             self.coef_length.append(ncoefs)
@@ -157,14 +157,14 @@ class BSplineFamily(BasisFamily):
             # Allocate space for the knotpoints
             self.knotpoints.append(np.empty(
                 (self.degree[i] + 1) + (len(self.breakpoints) - 2) * \
-                (self.degree[i] - self.smoothness[i]) + (self.degree[i] + 1)))
+                (self.degree[i] - self.continuity[i]) + (self.degree[i] + 1)))
 
             # Initial knotpoints (multiplicity = order)
             self.knotpoints[i][0:self.degree[i] + 1] = self.breakpoints[0]
             offset = self.degree[i] + 1
 
-            # Interior knotpoints (multiplicity = degree - smoothness)
-            nknots = self.degree[i] - self.smoothness[i]
+            # Interior knotpoints (multiplicity = degree - continuity)
+            nknots = self.degree[i] - self.continuity[i]
             assert nknots > 0           # just in case
             for j in range(1, self.breakpoints.size - 1):
                 self.knotpoints[i][offset:offset+nknots] = self.breakpoints[j]
@@ -176,7 +176,7 @@ class BSplineFamily(BasisFamily):
 
     def __repr__(self):
         return f'<{self.__class__.__name__}: nvars={self.nvars}, ' + \
-            f'degree={self.degree}, smoothness={self.smoothness}>'
+            f'degree={self.degree}, continuity={self.continuity}>'
 
     # Compute the kth derivative of the ith basis function at time t
     def eval_deriv(self, i, k, t, var=None):
