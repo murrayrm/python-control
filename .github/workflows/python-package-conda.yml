@@ -26,7 +26,7 @@ jobs:
         mplbackend: [""]
         array-and-matrix: [0]
         include:
-          - python-version: '3.11'
+          - python-version: '3.10'
             slycot: conda
             pandas: conda
             numba: conda
