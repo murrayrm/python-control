@@ -39,9 +39,9 @@ class TestPade:
         T = 1
         num, den = pade(T, dendeg, numdeg)
         np.testing.assert_array_almost_equal_nulp(
-            np.array(refden), den, nulp=2)
+            np.array(refden), den, nulp=3)
         np.testing.assert_array_almost_equal_nulp(
-                np.array(refnum), num, nulp=2)
+                np.array(refnum), num, nulp=3)
 
     @pytest.mark.parametrize("dendeg, numdeg, baseden, basenum", ref)
     @pytest.mark.parametrize("T", [1/53, 21.95])
@@ -52,8 +52,8 @@ class TestPade:
         refnum /= refden[0]
         refden /= refden[0]
         num, den = pade(T, dendeg, numdeg)
-        np.testing.assert_array_almost_equal_nulp(refden, den, nulp=2)
-        np.testing.assert_array_almost_equal_nulp(refnum, num, nulp=2)
+        np.testing.assert_array_almost_equal_nulp(refden, den, nulp=3)
+        np.testing.assert_array_almost_equal_nulp(refnum, num, nulp=3)
 
     def testErrors(self):
         "ValueError raised for invalid arguments"
