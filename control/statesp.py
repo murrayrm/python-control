@@ -63,8 +63,8 @@ from warnings import warn
 from .exception import ControlSlycot
 from .frdata import FrequencyResponseData
 from .lti import LTI, _process_frequency_response
-from .namedio import common_timebase, isdtime, _process_namedio_keywords, \
-    _process_dt_keyword, NamedIOSystem
+from .iosys import InputOutputSystem, common_timebase, isdtime, \
+    _process_iosys_keywords, _process_dt_keyword, _process_signal_list
 from . import config
 from copy import deepcopy
 
@@ -73,7 +73,8 @@ try:
 except ImportError:
     ab13dd = None
 
-__all__ = ['StateSpace', 'tf2ss', 'ssdata', 'linfnorm']
+__all__ = ['StateSpace', 'tf2ss', 'ssdata', 'linfnorm', 'ss', 'rss',
+           'drss']
 
 # Define module default parameter values
 _statesp_defaults = {
@@ -217,7 +218,7 @@ class StateSpace(LTI):
     The default value of dt can be changed by changing the value of
     ``control.config.defaults['control.default_dt']``.
 
-    Note: timebase processing has moved to namedio.
+    Note: timebase processing has moved to iosys.
 
     A state space system is callable and returns the value of the transfer
     function evaluated at a point in the complex plane.  See
@@ -244,9 +245,9 @@ class StateSpace(LTI):
     """
 
     # Allow ndarray * StateSpace to give StateSpace._rmul_() priority
-    __array_priority__ = 11     # override ndarray and matrix types
+    __array_priority__ = 12     # override ndarray and TF types
 
-    def __init__(self, *args, init_namedio=True, **kwargs):
+    def __init__(self, *args, **kwargs):
         """StateSpace(A, B, C, D[, dt])
 
         Construct a state space object.
@@ -263,11 +264,7 @@ class StateSpace(LTI):
         state is removed from the A, B, and C matrices.  If not specified, the
         value is read from `config.defaults['statesp.remove_useless_states']`
         (default = False).
-
-        The `init_namedio` keyword can be used to turn off initialization of
-        system and signal names.  This is used internally by the
-        :class:`LinearIOSystem` class to avoid renaming.
-
+        
         """
         #
         # Process positional arguments
@@ -330,23 +327,22 @@ class StateSpace(LTI):
             'remove_useless_states',
             config.defaults['statesp.remove_useless_states'])
 
-        # Initialize the instance variables
-        if init_namedio:
-            # Process namedio keywords
-            defaults = args[0] if len(args) == 1 else \
-                {'inputs': D.shape[1], 'outputs': D.shape[0],
-                 'states': A.shape[0]}
-            name, inputs, outputs, states, dt = _process_namedio_keywords(
-                kwargs, defaults, static=(A.size == 0), end=True)
+        # Process iosys keywords
+        defaults = args[0] if len(args) == 1 else \
+            {'inputs': D.shape[1], 'outputs': D.shape[0],
+             'states': A.shape[0]}
+        name, inputs, outputs, states, dt = _process_iosys_keywords(
+            kwargs, defaults, static=(A.size == 0), end=True)
 
-            # Initialize LTI (NamedIOSystem) object
-            super().__init__(
-                name=name, inputs=inputs, outputs=outputs,
-                states=states, dt=dt)
-        elif kwargs:
+        if kwargs:
             raise TypeError("unrecognized keyword(s): ", str(kwargs))
 
-        # Reset shape if system is static
+        # Initialize LTI (InputOutputSystem) object
+        super().__init__(
+            name=name, inputs=inputs, outputs=outputs,
+            states=states, dt=dt)
+        
+        # Reset shapes (may not be needed once np.matrix support is removed)
         if self._isstatic():
             A.shape = (0, 0)
             B.shape = (0, self.ninputs)
@@ -474,7 +470,8 @@ class StateSpace(LTI):
 
     def __str__(self):
         """Return string representation of the state space system."""
-        string = "\n".join([
+        string = f"{InputOutputSystem.__str__(self)}\n\n"
+        string += "\n".join([
             "{} = {}\n".format(Mvar,
                                "\n    ".join(str(M).splitlines()))
             for Mvar, M in zip(["A", "B", "C", "D"],
@@ -486,6 +483,7 @@ class StateSpace(LTI):
     # represent to implement a re-loadable version
     def __repr__(self):
         """Print state-space system in loadable form."""
+        # TODO: add input/output names
         return "StateSpace({A}, {B}, {C}, {D}{dt})".format(
             A=self.A.__repr__(), B=self.B.__repr__(),
             C=self.C.__repr__(), D=self.D.__repr__(),
@@ -782,7 +780,7 @@ class StateSpace(LTI):
         Only division by TFs, FRDs, scalars, and arrays of scalars is
         supported.
         """
-        if not isinstance(other, (LTI, NamedIOSystem)):
+        if not isinstance(other, (LTI, InputOutputSystem)):
             return self * (1/other)
         else:
             return NotImplemented
@@ -1276,8 +1274,8 @@ class StateSpace(LTI):
             raise IOError('must provide indices of length 2 for state space')
         outdx = indices[0] if isinstance(indices[0], list) else [indices[0]]
         inpdx = indices[1] if isinstance(indices[1], list) else [indices[1]]
-        sysname = config.defaults['namedio.indexed_system_name_prefix'] + \
-            self.name + config.defaults['namedio.indexed_system_name_suffix']
+        sysname = config.defaults['iosys.indexed_system_name_prefix'] + \
+            self.name + config.defaults['iosys.indexed_system_name_suffix']
         return StateSpace(
             self.A, self.B[:, inpdx], self.C[outdx, :], self.D[outdx, inpdx],
             self.dt, name=sysname,
@@ -1318,8 +1316,8 @@ class StateSpace(LTI):
             if `copy_names` is `False`, a generic name <sys[id]> is generated
             with a unique integer id.  If `copy_names` is `True`, the new system
             name is determined by adding the prefix and suffix strings in
-            config.defaults['namedio.sampled_system_name_prefix'] and
-            config.defaults['namedio.sampled_system_name_suffix'], with the
+            config.defaults['iosys.sampled_system_name_prefix'] and
+            config.defaults['iosys.sampled_system_name_suffix'], with the
             default being to add the suffix '$sampled'.
         copy_names : bool, Optional
             If True, copy the names of the input signals, output
@@ -1982,3 +1980,375 @@ def linfnorm(sys, tol=1e-10):
         fpeak /= sys.dt
 
     return gpeak, fpeak
+
+
+# Define a state space object that is an I/O system
+def ss(*args, **kwargs):
+    r"""ss(A, B, C, D[, dt])
+
+    Create a state space system.
+
+    The function accepts either 1, 2, 4 or 5 parameters:
+
+    ``ss(sys)``
+        Convert a linear system into space system form. Always creates a
+        new system, even if sys is already a state space system.
+
+    ``ss(updfcn, outfcn)``
+        Create a nonlinear input/output system with update function ``updfcn``
+        and output function ``outfcn``.  See :class:`NonlinearIOSystem` for
+        more information.
+
+    ``ss(A, B, C, D)``
+        Create a state space system from the matrices of its state and
+        output equations:
+
+        .. math::
+
+            dx/dt &= A x + B u \\
+                y &= C x + D  u
+
+    ``ss(A, B, C, D, dt)``
+        Create a discrete-time state space system from the matrices of
+        its state and output equations:
+
+        .. math::
+
+            x[k+1] &= A x[k] + B u[k] \\
+              y[k] &= C x[k] + D u[k]
+
+        The matrices can be given as *array like* data types or strings.
+        Everything that the constructor of :class:`numpy.matrix` accepts is
+        permissible here too.
+
+    ``ss(args, inputs=['u1', ..., 'up'], outputs=['y1', ..., 'yq'], states=['x1', ..., 'xn'])``
+        Create a system with named input, output, and state signals.
+
+    Parameters
+    ----------
+    sys : StateSpace or TransferFunction
+        A linear system.
+    A, B, C, D : array_like or string
+        System, control, output, and feed forward matrices.
+    dt : None, True or float, optional
+        System timebase. 0 (default) indicates continuous
+        time, True indicates discrete time with unspecified sampling
+        time, positive number is discrete time with specified
+        sampling time, None indicates unspecified timebase (either
+        continuous or discrete time).
+    inputs, outputs, states : str, or list of str, optional
+        List of strings that name the individual signals.  If this parameter
+        is not given or given as `None`, the signal names will be of the
+        form `s[i]` (where `s` is one of `u`, `y`, or `x`). See
+        :class:`InputOutputSystem` for more information.
+    name : string, optional
+        System name (used for specifying signals). If unspecified, a generic
+        name <sys[id]> is generated with a unique integer id.
+
+    Returns
+    -------
+    out: :class:`StateSpace`
+        Linear input/output system.
+
+    Raises
+    ------
+    ValueError
+        If matrix sizes are not self-consistent.
+
+    See Also
+    --------
+    tf
+    ss2tf
+    tf2ss
+
+    Examples
+    --------
+    Create a Linear I/O system object from matrices.
+
+    >>> G = ct.ss([[-1, -2], [3, -4]], [[5], [7]], [[6, 8]], [[9]])
+
+    Convert a TransferFunction to a StateSpace object.
+
+    >>> sys_tf = ct.tf([2.], [1., 3])
+    >>> sys2 = ct.ss(sys_tf)
+
+    """
+    # See if this is a nonlinear I/O system
+    if len(args) > 0 and (hasattr(args[0], '__call__') or args[0] is None) \
+       and not isinstance(args[0], (InputOutputSystem, LTI)):
+        # Function as first (or second) argument => assume nonlinear IO system
+        return NonlinearIOSystem(*args, **kwargs)
+
+    elif len(args) == 4 or len(args) == 5:
+        # Create a state space function from A, B, C, D[, dt]
+        sys = StateSpace(*args, **kwargs)
+
+    elif len(args) == 1:
+        sys = args[0]
+        if isinstance(sys, LTI):
+            # Check for system with no states and specified state names
+            if sys.nstates is None and 'states' in kwargs:
+                warn("state labels specified for "
+                     "non-unique state space realization")
+
+            # Create a state space system from an LTI system
+            sys = StateSpace(
+                _convert_to_statespace(
+                    sys,
+                    use_prefix_suffix=not sys._generic_name_check()),
+                **kwargs)
+
+        else:
+            raise TypeError("ss(sys): sys must be a StateSpace or "
+                            "TransferFunction object.  It is %s." % type(sys))
+    else:
+        raise TypeError(
+            "Needs 1, 4, or 5 arguments; received %i." % len(args))
+
+    return sys
+
+
+# Utility function to allow lists states, inputs
+def _concatenate_list_elements(X, name='X'):
+    # If we were passed a list, concatenate the elements together
+    if isinstance(X, (tuple, list)):
+        X_list = []
+        for i, x in enumerate(X):
+            x = np.array(x).reshape(-1)         # convert everyting to 1D array
+            X_list += x.tolist()                # add elements to initial state
+        return np.array(X_list)
+
+    # Otherwise, do nothing
+    return X
+
+def rss(states=1, outputs=1, inputs=1, strictly_proper=False, **kwargs):
+    """Create a stable random state space object.
+
+    Parameters
+    ----------
+    inputs : int, list of str, or None
+        Description of the system inputs.  This can be given as an integer
+        count or as a list of strings that name the individual signals.  If an
+        integer count is specified, the names of the signal will be of the
+        form `s[i]` (where `s` is one of `u`, `y`, or `x`).
+    outputs : int, list of str, or None
+        Description of the system outputs.  Same format as `inputs`.
+    states : int, list of str, or None
+        Description of the system states.  Same format as `inputs`.
+    strictly_proper : bool, optional
+        If set to 'True', returns a proper system (no direct term).
+    dt : None, True or float, optional
+        System timebase. 0 (default) indicates continuous
+        time, True indicates discrete time with unspecified sampling
+        time, positive number is discrete time with specified
+        sampling time, None indicates unspecified timebase (either
+        continuous or discrete time).
+    name : string, optional
+        System name (used for specifying signals). If unspecified, a generic
+        name <sys[id]> is generated with a unique integer id.
+
+    Returns
+    -------
+    sys : StateSpace
+        The randomly created linear system.
+
+    Raises
+    ------
+    ValueError
+        if any input is not a positive integer.
+
+    Notes
+    -----
+    If the number of states, inputs, or outputs is not specified, then the
+    missing numbers are assumed to be 1.  If dt is not specified or is given
+    as 0 or None, the poles of the returned system will always have a
+    negative real part.  If dt is True or a postive float, the poles of the
+    returned system will have magnitude less than 1.
+
+    """
+    # Process keyword arguments
+    kwargs.update({'states': states, 'outputs': outputs, 'inputs': inputs})
+    name, inputs, outputs, states, dt = _process_iosys_keywords(kwargs)
+
+    # Figure out the size of the sytem
+    nstates, _ = _process_signal_list(states)
+    ninputs, _ = _process_signal_list(inputs)
+    noutputs, _ = _process_signal_list(outputs)
+
+    sys = _rss_generate(
+        nstates, ninputs, noutputs, 'c' if not dt else 'd', name=name,
+        strictly_proper=strictly_proper)
+
+    return StateSpace(
+        sys, name=name, states=states, inputs=inputs, outputs=outputs, dt=dt,
+        **kwargs)
+
+
+def drss(*args, **kwargs):
+    """
+    drss([states, outputs, inputs, strictly_proper])
+
+    Create a stable, discrete-time, random state space system
+
+    Create a stable *discrete time* random state space object.  This
+    function calls :func:`rss` using either the `dt` keyword provided by
+    the user or `dt=True` if not specified.
+
+    Examples
+    --------
+    >>> G = ct.drss(states=4, outputs=2, inputs=1)
+    >>> G.ninputs, G.noutputs, G.nstates
+    (1, 2, 4)
+    >>> G.isdtime()
+    True
+
+
+    """
+    # Make sure the timebase makes sense
+    if 'dt' in kwargs:
+        dt = kwargs['dt']
+
+        if dt == 0:
+            raise ValueError("drss called with continuous timebase")
+        elif dt is None:
+            warn("drss called with unspecified timebase; "
+                 "system may be interpreted as continuous time")
+            kwargs['dt'] = True     # force rss to generate discrete time sys
+    else:
+        dt = True
+        kwargs['dt'] = True
+
+    # Create the system
+    sys = rss(*args, **kwargs)
+
+    # Reset the timebase (in case it was specified as None)
+    sys.dt = dt
+
+    return sys
+
+
+# Summing junction
+def summing_junction(
+        inputs=None, output=None, dimension=None, prefix='u', **kwargs):
+    """Create a summing junction as an input/output system.
+
+    This function creates a static input/output system that outputs the sum of
+    the inputs, potentially with a change in sign for each individual input.
+    The input/output system that is created by this function can be used as a
+    component in the :func:`~control.interconnect` function.
+
+    Parameters
+    ----------
+    inputs : int, string or list of strings
+        Description of the inputs to the summing junction.  This can be given
+        as an integer count, a string, or a list of strings. If an integer
+        count is specified, the names of the input signals will be of the form
+        `u[i]`.
+    output : string, optional
+        Name of the system output.  If not specified, the output will be 'y'.
+    dimension : int, optional
+        The dimension of the summing junction.  If the dimension is set to a
+        positive integer, a multi-input, multi-output summing junction will be
+        created.  The input and output signal names will be of the form
+        `<signal>[i]` where `signal` is the input/output signal name specified
+        by the `inputs` and `output` keywords.  Default value is `None`.
+    name : string, optional
+        System name (used for specifying signals). If unspecified, a generic
+        name <sys[id]> is generated with a unique integer id.
+    prefix : string, optional
+        If `inputs` is an integer, create the names of the states using the
+        given prefix (default = 'u').  The names of the input will be of the
+        form `prefix[i]`.
+
+    Returns
+    -------
+    sys : static StateSpace
+        Linear input/output system object with no states and only a direct
+        term that implements the summing junction.
+
+    Examples
+    --------
+    >>> P = ct.tf2io(1, [1, 0], inputs='u', outputs='y')
+    >>> C = ct.tf2io(10, [1, 1], inputs='e', outputs='u')
+    >>> sumblk = ct.summing_junction(inputs=['r', '-y'], output='e')
+    >>> T = ct.interconnect([P, C, sumblk], inputs='r', outputs='y')
+    >>> T.ninputs, T.noutputs, T.nstates
+    (1, 1, 2)
+
+    """
+    # Utility function to parse input and output signal lists
+    def _parse_list(signals, signame='input', prefix='u'):
+        # Parse signals, including gains
+        if isinstance(signals, int):
+            nsignals = signals
+            names = ["%s[%d]" % (prefix, i) for i in range(nsignals)]
+            gains = np.ones((nsignals,))
+        elif isinstance(signals, str):
+            nsignals = 1
+            gains = [-1 if signals[0] == '-' else 1]
+            names = [signals[1:] if signals[0] == '-' else signals]
+        elif isinstance(signals, list) and \
+             all([isinstance(x, str) for x in signals]):
+            nsignals = len(signals)
+            gains = np.ones((nsignals,))
+            names = []
+            for i in range(nsignals):
+                if signals[i][0] == '-':
+                    gains[i] = -1
+                    names.append(signals[i][1:])
+                else:
+                    names.append(signals[i])
+        else:
+            raise ValueError(
+                "could not parse %s description '%s'"
+                % (signame, str(signals)))
+
+        # Return the parsed list
+        return nsignals, names, gains
+
+    # Parse system and signal names (with some minor pre-processing)
+    if input is not None:
+        kwargs['inputs'] = inputs       # positional/keyword -> keyword
+    if output is not None:
+        kwargs['output'] = output       # positional/keyword -> keyword
+    name, inputs, output, states, dt = _process_iosys_keywords(
+        kwargs, {'inputs': None, 'outputs': 'y'}, end=True)
+    if inputs is None:
+        raise TypeError("input specification is required")
+
+    # Read the input list
+    ninputs, input_names, input_gains = _parse_list(
+        inputs, signame="input", prefix=prefix)
+    noutputs, output_names, output_gains = _parse_list(
+        output, signame="output", prefix='y')
+    if noutputs > 1:
+        raise NotImplementedError("vector outputs not yet supported")
+
+    # If the dimension keyword is present, vectorize inputs and outputs
+    if isinstance(dimension, int) and dimension >= 1:
+        # Create a new list of input/output names and update parameters
+        input_names = ["%s[%d]" % (name, dim)
+                       for name in input_names
+                       for dim in range(dimension)]
+        ninputs = ninputs * dimension
+
+        output_names = ["%s[%d]" % (name, dim)
+                        for name in output_names
+                        for dim in range(dimension)]
+        noutputs = noutputs * dimension
+    elif dimension is not None:
+        raise ValueError(
+            "unrecognized dimension value '%s'" % str(dimension))
+    else:
+        dimension = 1
+
+    # Create the direct term
+    D = np.kron(input_gains * output_gains[0], np.eye(dimension))
+
+    # Create a linear system of the appropriate size
+    ss_sys = StateSpace(
+        np.zeros((0, 0)), np.ones((0, ninputs)), np.ones((noutputs, 0)), D)
+
+    # Create a StateSpace
+    return StateSpace(
+        ss_sys, inputs=input_names, outputs=output_names, name=name)
