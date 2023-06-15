@@ -38,7 +38,7 @@
 import numpy as np
 import control
 from .flatsys import FlatSystem
-from ..iosys import StateSpace
+from ..statesp import StateSpace
 
 
 class LinearFlatSystem(FlatSystem, StateSpace):

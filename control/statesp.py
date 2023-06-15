@@ -65,6 +65,7 @@ from .frdata import FrequencyResponseData
 from .lti import LTI, _process_frequency_response
 from .iosys import InputOutputSystem, common_timebase, isdtime, \
     _process_iosys_keywords, _process_dt_keyword, _process_signal_list
+from .nlsys import NonlinearIOSystem, InterconnectedSystem
 from . import config
 from copy import deepcopy
 
@@ -73,8 +74,8 @@ try:
 except ImportError:
     ab13dd = None
 
-__all__ = ['StateSpace', 'tf2ss', 'ssdata', 'linfnorm', 'ss', 'rss',
-           'drss']
+__all__ = ['StateSpace', 'LinearICSystem', 'tf2ss', 'ssdata',
+           'linfnorm', 'ss', 'rss', 'drss', 'summing_junction']
 
 # Define module default parameter values
 _statesp_defaults = {
@@ -85,79 +86,7 @@ _statesp_defaults = {
     }
 
 
-def _ssmatrix(data, axis=1):
-    """Convert argument to a (possibly empty) 2D state space matrix.
-
-    The axis keyword argument makes it convenient to specify that if the input
-    is a vector, it is a row (axis=1) or column (axis=0) vector.
-
-    Parameters
-    ----------
-    data : array, list, or string
-        Input data defining the contents of the 2D array
-    axis : 0 or 1
-        If input data is 1D, which axis to use for return object.  The default
-        is 1, corresponding to a row matrix.
-
-    Returns
-    -------
-    arr : 2D array, with shape (0, 0) if a is empty
-
-    """
-    # Convert the data into an array
-    arr = np.array(data, dtype=float)
-    ndim = arr.ndim
-    shape = arr.shape
-
-    # Change the shape of the array into a 2D array
-    if (ndim > 2):
-        raise ValueError("state-space matrix must be 2-dimensional")
-
-    elif (ndim == 2 and shape == (1, 0)) or \
-         (ndim == 1 and shape == (0, )):
-        # Passed an empty matrix or empty vector; change shape to (0, 0)
-        shape = (0, 0)
-
-    elif ndim == 1:
-        # Passed a row or column vector
-        shape = (1, shape[0]) if axis == 1 else (shape[0], 1)
-
-    elif ndim == 0:
-        # Passed a constant; turn into a matrix
-        shape = (1, 1)
-
-    #  Create the actual object used to store the result
-    return arr.reshape(shape)
-
-
-def _f2s(f):
-    """Format floating point number f for StateSpace._repr_latex_.
-
-    Numbers are converted to strings with statesp.latex_num_format.
-
-    Inserts column separators, etc., as needed.
-    """
-    fmt = "{:" + config.defaults['statesp.latex_num_format'] + "}"
-    sraw = fmt.format(f)
-    # significand-exponent
-    se = sraw.lower().split('e')
-    # whole-fraction
-    wf = se[0].split('.')
-    s = wf[0]
-    if wf[1:]:
-        s += r'.&\hspace{{-1em}}{frac}'.format(frac=wf[1])
-    else:
-        s += r'\phantom{.}&\hspace{-1em}'
-
-    if se[1:]:
-        s += r'&\hspace{{-1em}}\cdot10^{{{:d}}}'.format(int(se[1]))
-    else:
-        s += r'&\hspace{-1em}\phantom{\cdot}'
-
-    return s
-
-
-class StateSpace(LTI):
+class StateSpace(NonlinearIOSystem, LTI):
     r"""StateSpace(A, B, C, D[, dt])
 
     A class for representing state-space models.
@@ -269,6 +198,8 @@ class StateSpace(LTI):
         #
         # Process positional arguments
         #
+        # TODO: Move all of this into the ss() factory function
+        # TODO: Use standard processing order for I/O systems
         if len(args) == 4:
             # The user provided A, B, C, and D matrices.
             (A, B, C, D) = args
@@ -292,6 +223,8 @@ class StateSpace(LTI):
             B = args[0].B
             C = args[0].C
             D = args[0].D
+            dt = args[0].dt
+            # TODO: copy the remaining attributes
 
         else:
             raise TypeError(
@@ -332,15 +265,20 @@ class StateSpace(LTI):
             {'inputs': D.shape[1], 'outputs': D.shape[0],
              'states': A.shape[0]}
         name, inputs, outputs, states, dt = _process_iosys_keywords(
-            kwargs, defaults, static=(A.size == 0), end=True)
+            kwargs, defaults, static=(A.size == 0))
 
-        if kwargs:
-            raise TypeError("unrecognized keyword(s): ", str(kwargs))
+        # Create updfcn and outfcn
+        updfcn = lambda t, x, u, params: \
+            self.A @ np.atleast_1d(x) + self.B @ np.atleast_1d(u)
+        outfcn = lambda t, x, u, params: \
+            self.C @ np.atleast_1d(x) + self.D @ np.atleast_1d(u)
 
-        # Initialize LTI (InputOutputSystem) object
+        # Initialize NonlinearIOSystem object
         super().__init__(
+            updfcn, outfcn,
             name=name, inputs=inputs, outputs=outputs,
-            states=states, dt=dt)
+            states=states, dt=dt, **kwargs)
+        self.params = {}
         
         # Reset shapes (may not be needed once np.matrix support is removed)
         if self._isstatic():
@@ -642,33 +580,42 @@ class StateSpace(LTI):
     # Negation of a system
     def __neg__(self):
         """Negate a state space system."""
-
         return StateSpace(self.A, self.B, -self.C, -self.D, self.dt)
 
     # Addition of two state space systems (parallel interconnection)
     def __add__(self, other):
         """Add two LTI systems (parallel connection)."""
+        from .xferfcn import TransferFunction
 
+        # Convert transfer functions to state space
+        if isinstance(other, TransferFunction):
+            # Convert the other argument to state space
+            other = _convert_to_statespace(other)
+            
         # Check for a couple of special cases
         if isinstance(other, (int, float, complex, np.number)):
             # Just adding a scalar; put it in the D matrix
             A, B, C = self.A, self.B, self.C
             D = self.D + other
             dt = self.dt
+
+        elif isinstance(other, np.ndarray):
+            other = np.atleast_2d(other)
+            if self.ninputs != other.shape[0]:
+                raise ValueError("array has incompatible shape")
+            A, B, C = self.A, self.B, self.C
+            D = self.D + other
+            dt = self.dt
+
+        elif not isinstance(other, StateSpace):
+            return NotImplemented       # let other.__rmul__ handle it
+        
         else:
-            # Check to see if the right operator has priority
-            if getattr(other, '__array_priority__', None) and \
-               getattr(self, '__array_priority__', None) and \
-               other.__array_priority__ > self.__array_priority__:
-                return other.__radd__(self)
-
-            # Convert the other argument to state space
-            other = _convert_to_statespace(other)
-
             # Check to make sure the dimensions are OK
             if ((self.ninputs != other.ninputs) or
                     (self.noutputs != other.noutputs)):
-                raise ValueError("Systems have different shapes.")
+                raise ValueError(
+                    "can't add systems with incompatible inputs and outputs")
 
             dt = common_timebase(self.dt, other.dt)
 
@@ -687,47 +634,53 @@ class StateSpace(LTI):
     # Right addition - just switch the arguments
     def __radd__(self, other):
         """Right add two LTI systems (parallel connection)."""
-
         return self + other
 
     # Subtraction of two state space systems (parallel interconnection)
     def __sub__(self, other):
         """Subtract two LTI systems."""
-
         return self + (-other)
 
     def __rsub__(self, other):
         """Right subtract two LTI systems."""
-
         return other + (-self)
 
     # Multiplication of two state space systems (series interconnection)
     def __mul__(self, other):
         """Multiply two LTI objects (serial connection)."""
+        from .xferfcn import TransferFunction
 
+        # Convert transfer functions to state space
+        if isinstance(other, TransferFunction):
+            # Convert the other argument to state space
+            other = _convert_to_statespace(other)
+            
         # Check for a couple of special cases
         if isinstance(other, (int, float, complex, np.number)):
             # Just multiplying by a scalar; change the output
-            A, B = self.A, self.B
-            C = self.C * other
+            A, C = self.A, self.C
+            B = self.B * other
             D = self.D * other
             dt = self.dt
+            
+        elif isinstance(other, np.ndarray):
+            other = np.atleast_2d(other)
+            if self.ninputs != other.shape[0]:
+                raise ValueError("array has incompatible shape")
+            A, C = self.A, self.C
+            B = self.B @ other
+            D = self.D @ other
+            dt = self.dt
+
+        elif not isinstance(other, StateSpace):
+            return NotImplemented       # let other.__rmul__ handle it
+        
         else:
-            # Check to see if the right operator has priority
-            if getattr(other, '__array_priority__', None) and \
-               getattr(self, '__array_priority__', None) and \
-               other.__array_priority__ > self.__array_priority__:
-                return other.__rmul__(self)
-
-            # Convert the other argument to state space
-            other = _convert_to_statespace(other)
-
             # Check to make sure the dimensions are OK
             if self.ninputs != other.noutputs:
                 raise ValueError(
-                    "C = A * B: A has %i column(s) (input(s)), "
-                    "but B has %i row(s)\n(output(s))." %
-                    (self.ninputs, other.noutputs))
+                    "can't multiply systems with incompatible"
+                    " inputs and outputs")
             dt = common_timebase(self.dt, other.dt)
 
             # Concatenate the various arrays
@@ -748,43 +701,37 @@ class StateSpace(LTI):
     # TODO: __rmul__ only works for special cases (??)
     def __rmul__(self, other):
         """Right multiply two LTI objects (serial connection)."""
+        from .xferfcn import TransferFunction
 
+        # Convert transfer functions to state space
+        if isinstance(other, TransferFunction):
+            # Convert the other argument to state space
+            other = _convert_to_statespace(other)
+            
         # Check for a couple of special cases
         if isinstance(other, (int, float, complex, np.number)):
             # Just multiplying by a scalar; change the input
-            A, C = self.A, self.C
-            B = self.B * other
-            D = self.D * other
-            return StateSpace(A, B, C, D, self.dt)
+            B = other * self.B
+            D = other * self.D
+            return StateSpace(self.A, B, self.C, D, self.dt)
 
-        # is lti, and convertible?
-        if isinstance(other, LTI):
-            return _convert_to_statespace(other) * self
-
-        # try to treat this as a matrix
-        try:
-            X = _ssmatrix(other)
-            C = X @ self.C
-            D = X @ self.D
+        elif isinstance(other, np.ndarray):
+            C = np.atleast_2d(other) @ self.C
+            D = np.atleast_2d(other) @ self.D
             return StateSpace(self.A, self.B, C, D, self.dt)
+        
+        if not isinstance(other, StateSpace):
+            return NotImplemented
 
-        except Exception as e:
-            print(e)
-            pass
-        raise TypeError("can't interconnect systems")
+        return other * self
 
-    # TODO: general __truediv__, and  __rtruediv__; requires descriptor system support
+    # TODO: general __truediv__ requires descriptor system support
     def __truediv__(self, other):
-        """Division of StateSpace systems
-
-        Only division by TFs, FRDs, scalars, and arrays of scalars is
-        supported.
-        """
+        """Division of state space systems byTFs, FRDs, scalars, and arrays"""
         if not isinstance(other, (LTI, InputOutputSystem)):
             return self * (1/other)
         else:
             return NotImplemented
-
 
     def __call__(self, x, squeeze=None, warn_infinite=True):
         """Evaluate system's frequency response at complex frequencies.
@@ -1024,8 +971,14 @@ class StateSpace(LTI):
     # Feedback around a state space system
     def feedback(self, other=1, sign=-1):
         """Feedback interconnection between two LTI systems."""
-
-        other = _convert_to_statespace(other)
+        # Convert the system to state space, if possible
+        try:
+            other = _convert_to_statespace(other)
+        except:
+            pass
+            
+        if not isinstance(other, StateSpace):
+            return NonlinearIOSystem.feedback(self, other, sign)
 
         # Check to make sure the dimensions are OK
         if self.ninputs != other.noutputs or self.noutputs != other.ninputs:
@@ -1501,6 +1454,71 @@ class StateSpace(LTI):
                 + (self.D @ u).reshape((-1,))  # return as row vector
 
 
+class LinearICSystem(InterconnectedSystem, StateSpace):
+    """Interconnection of a set of linear input/output systems.
+
+    This class is used to implement a system that is an interconnection of
+    linear input/output systems.  It has all of the structure of an
+    :class:`~control.InterconnectedSystem`, but also maintains the requirement
+    elements of :class:`~control.LinearIOSystem`, including the
+    :class:`StateSpace` class structure, allowing it to be passed to functions
+    that expect a :class:`StateSpace` system.
+
+    This class is generated using :func:`~control.interconnect` and
+    not called directly.
+
+    """
+
+    def __init__(self, io_sys, ss_sys=None):
+        #
+        # Because this is a "hybrid" object, the initialization proceeds in
+        # states.  We first create an empty InputOutputSystem of the
+        # appropriate size, then copy over the elements of the
+        # InterconnectedIOSystem class.  From there we compute the
+        # linearization of the system (if needed) and then populate the
+        # StateSpace parameters.
+        #
+        # Create the (essentially empty) I/O system object
+        InputOutputSystem.__init__(
+            self, name=io_sys.name, inputs=io_sys.ninputs,
+            outputs=io_sys.noutputs, states=io_sys.nstates, dt=io_sys.dt)
+
+        # Copy over the attributes from the interconnected system
+        self.syslist = io_sys.syslist
+        self.syslist_index = io_sys.syslist_index
+        self.state_offset = io_sys.state_offset
+        self.input_offset = io_sys.input_offset
+        self.output_offset = io_sys.output_offset
+        self.connect_map = io_sys.connect_map
+        self.input_map = io_sys.input_map
+        self.output_map = io_sys.output_map
+        self.params = io_sys.params
+
+        # If we didnt' get a state space system, linearize the full system
+        if ss_sys is None:
+            ss_sys = self.linearize(0, 0)
+
+        # Initialize the state space object
+        StateSpace.__init__(
+            self, ss_sys, name=io_sys.name, inputs=io_sys.input_labels,
+            outputs=io_sys.output_labels, states=io_sys.state_labels,
+            params=io_sys.params, remove_useless_states=False)
+
+        # Use StateSpace.__call__ to evaluate at a given complex value
+        self.__call__ = StateSpace.__call__
+
+    # The following text needs to be replicated from StateSpace in order for
+    # this entry to show up properly in sphinx doccumentation (not sure why,
+    # but it was the only way to get it to work).
+    #
+    #: Deprecated attribute; use :attr:`nstates` instead.
+    #:
+    #: The ``state`` attribute was used to store the number of states for : a
+    #: state space system.  It is no longer used.  If you need to access the
+    #: number of states, use :attr:`nstates`.
+    states = property(StateSpace._get_states, StateSpace._set_states)
+
+
 # TODO: add discrete time check
 def _convert_to_statespace(sys, use_prefix_suffix=False):
     """Convert a system to state space form (if needed).
@@ -1761,9 +1779,10 @@ def _mimo2siso(sys, input, output, warn_conversion=False):
         new_B = sys.B[:, input]
         new_C = sys.C[output, :]
         new_D = sys.D[output, input]
-        sys = StateSpace(sys.A, new_B, new_C, new_D, sys.dt,
-                         name=sys.name,
-                         inputs=sys.input_labels[input], outputs=sys.output_labels[output])
+        sys = StateSpace(
+            sys.A, new_B, new_C, new_D, sys.dt,
+            name=sys.name,
+            inputs=sys.input_labels[input], outputs=sys.output_labels[output])
 
     return sys
 
@@ -2108,19 +2127,6 @@ def ss(*args, **kwargs):
     return sys
 
 
-# Utility function to allow lists states, inputs
-def _concatenate_list_elements(X, name='X'):
-    # If we were passed a list, concatenate the elements together
-    if isinstance(X, (tuple, list)):
-        X_list = []
-        for i, x in enumerate(X):
-            x = np.array(x).reshape(-1)         # convert everyting to 1D array
-            X_list += x.tolist()                # add elements to initial state
-        return np.array(X_list)
-
-    # Otherwise, do nothing
-    return X
-
 def rss(states=1, outputs=1, inputs=1, strictly_proper=False, **kwargs):
     """Create a stable random state space object.
 
@@ -2352,3 +2358,81 @@ def summing_junction(
     # Create a StateSpace
     return StateSpace(
         ss_sys, inputs=input_names, outputs=output_names, name=name)
+
+
+def _ssmatrix(data, axis=1):
+    """Convert argument to a (possibly empty) 2D state space matrix.
+
+    The axis keyword argument makes it convenient to specify that if the input
+    is a vector, it is a row (axis=1) or column (axis=0) vector.
+
+    Parameters
+    ----------
+    data : array, list, or string
+        Input data defining the contents of the 2D array
+    axis : 0 or 1
+        If input data is 1D, which axis to use for return object.  The default
+        is 1, corresponding to a row matrix.
+
+    Returns
+    -------
+    arr : 2D array, with shape (0, 0) if a is empty
+
+    """
+    # Convert the data into an array or matrix, as configured
+    # If data is passed as a string, use (deprecated?) matrix constructor
+    if config.defaults['statesp.use_numpy_matrix']:
+        arr = np.matrix(data, dtype=float)
+    elif isinstance(data, str):
+        arr = np.array(np.matrix(data, dtype=float))
+    else:
+        arr = np.array(data, dtype=float)
+    ndim = arr.ndim
+    shape = arr.shape
+
+    # Change the shape of the array into a 2D array
+    if (ndim > 2):
+        raise ValueError("state-space matrix must be 2-dimensional")
+
+    elif (ndim == 2 and shape == (1, 0)) or \
+         (ndim == 1 and shape == (0, )):
+        # Passed an empty matrix or empty vector; change shape to (0, 0)
+        shape = (0, 0)
+
+    elif ndim == 1:
+        # Passed a row or column vector
+        shape = (1, shape[0]) if axis == 1 else (shape[0], 1)
+
+    elif ndim == 0:
+        # Passed a constant; turn into a matrix
+        shape = (1, 1)
+
+    #  Create the actual object used to store the result
+    return arr.reshape(shape)
+
+
+def _f2s(f):
+    """Format floating point number f for StateSpace._repr_latex_.
+
+    Numbers are converted to strings with statesp.latex_num_format.
+
+    Inserts column separators, etc., as needed.
+    """
+    fmt = "{:" + config.defaults['statesp.latex_num_format'] + "}"
+    sraw = fmt.format(f)
+    # significand-exponent
+    se = sraw.lower().split('e')
+    # whole-fraction
+    wf = se[0].split('.')
+    s = wf[0]
+    if wf[1:]:
+        s += r'.&\hspace{{-1em}}{frac}'.format(frac=wf[1])
+    else:
+        s += r'\phantom{.}&\hspace{-1em}'
+
+    if se[1:]:
+        s += r'&\hspace{{-1em}}\cdot10^{{{:d}}}'.format(int(se[1]))
+    else:
+        s += r'&\hspace{-1em}\phantom{\cdot}'
+
+    return s

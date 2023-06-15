@@ -273,7 +273,7 @@ class TestConfig:
         ct.set_defaults('control', default_dt=dt)
         assert ct.ss(1, 0, 0, 1).dt == dt
         assert ct.tf(1, [1, 1]).dt == dt
-        nlsys = ct.iosys.NonlinearIOSystem(
+        nlsys = ct.nlsys.NonlinearIOSystem(
             lambda t, x, u: u * x * x,
             lambda t, x, u: x, inputs=1, outputs=1)
         assert nlsys.dt == dt
@@ -283,11 +283,6 @@ class TestConfig:
         ct.set_defaults('control', default_dt=0)
         assert ct.tf(1, 1).dt is None
         assert ct.ss([], [], [], 1).dt is None
-
-        # Make sure static gain is preserved for the I/O system
-        sys = ct.ss([], [], [], 1)
-        sys_io = ct.ss2io(sys)
-        assert sys_io.dt is None
 
     def test_get_param_last(self):
         """Test _get_param last keyword"""
