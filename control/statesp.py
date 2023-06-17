@@ -2274,8 +2274,8 @@ def summing_junction(
 
     Examples
     --------
-    >>> P = ct.tf2io(1, [1, 0], inputs='u', outputs='y')
-    >>> C = ct.tf2io(10, [1, 1], inputs='e', outputs='u')
+    >>> P = ct.tf(1, [1, 0], inputs='u', outputs='y')
+    >>> C = ct.tf(10, [1, 1], inputs='e', outputs='u')
     >>> sumblk = ct.summing_junction(inputs=['r', '-y'], output='e')
     >>> T = ct.interconnect([P, C, sumblk], inputs='r', outputs='y')
     >>> T.ninputs, T.noutputs, T.nstates
