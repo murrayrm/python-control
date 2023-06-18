@@ -147,8 +147,6 @@ class StateSpace(NonlinearIOSystem, LTI):
     The default value of dt can be changed by changing the value of
     ``control.config.defaults['control.default_dt']``.
 
-    Note: timebase processing has moved to iosys.
-
     A state space system is callable and returns the value of the transfer
     function evaluated at a point in the complex plane.  See
     :meth:`~control.StateSpace.__call__` for a more detailed description.
@@ -172,10 +170,6 @@ class StateSpace(NonlinearIOSystem, LTI):
     `'separate'`, the matrices are shown separately.
 
     """
-
-    # Allow ndarray * StateSpace to give StateSpace._rmul_() priority
-    __array_priority__ = 12     # override ndarray and TF types
-
     def __init__(self, *args, **kwargs):
         """StateSpace(A, B, C, D[, dt])
 
@@ -278,9 +272,8 @@ class StateSpace(NonlinearIOSystem, LTI):
             updfcn, outfcn,
             name=name, inputs=inputs, outputs=outputs,
             states=states, dt=dt, **kwargs)
-        self.params = {}
         
-        # Reset shapes (may not be needed once np.matrix support is removed)
+        # Reset shapes if the system is static
         if self._isstatic():
             A.shape = (0, 0)
             B.shape = (0, self.ninputs)
@@ -1459,10 +1452,9 @@ class LinearICSystem(InterconnectedSystem, StateSpace):
 
     This class is used to implement a system that is an interconnection of
     linear input/output systems.  It has all of the structure of an
-    :class:`~control.InterconnectedSystem`, but also maintains the requirement
-    elements of :class:`~control.LinearIOSystem`, including the
-    :class:`StateSpace` class structure, allowing it to be passed to functions
-    that expect a :class:`StateSpace` system.
+    :class:`~control.InterconnectedSystem`, but also maintains the required
+    elements of the :class:`StateSpace` class structure, allowing it to be
+    passed to functions that expect a :class:`StateSpace` system.
 
     This class is generated using :func:`~control.interconnect` and
     not called directly.
@@ -1472,7 +1464,7 @@ class LinearICSystem(InterconnectedSystem, StateSpace):
     def __init__(self, io_sys, ss_sys=None):
         #
         # Because this is a "hybrid" object, the initialization proceeds in
-        # states.  We first create an empty InputOutputSystem of the
+        # stages.  We first create an empty InputOutputSystem of the
         # appropriate size, then copy over the elements of the
         # InterconnectedIOSystem class.  From there we compute the
         # linearization of the system (if needed) and then populate the
