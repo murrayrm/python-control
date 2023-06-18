@@ -192,15 +192,14 @@ class StateSpace(NonlinearIOSystem, LTI):
         #
         # Process positional arguments
         #
-        # TODO: Move all of this into the ss() factory function
-        # TODO: Use standard processing order for I/O systems
+
         if len(args) == 4:
             # The user provided A, B, C, and D matrices.
-            (A, B, C, D) = args
+            A, B, C, D = args
 
         elif len(args) == 5:
             # Discrete time system
-            (A, B, C, D, dt) = args
+            A, B, C, D, dt = args
             if 'dt' in kwargs:
                 warn("received multiple dt arguments, "
                      "using positional arg dt = %s" % dt)
@@ -208,17 +207,17 @@ class StateSpace(NonlinearIOSystem, LTI):
             args = args[:-1]
 
         elif len(args) == 1:
-            # Use the copy constructor.
+            # Use the copy constructor
             if not isinstance(args[0], StateSpace):
                 raise TypeError(
-                    "The one-argument constructor can only take in a "
-                    "StateSpace object. Received %s." % type(args[0]))
+                    "the one-argument constructor can only take in a "
+                    "StateSpace object; received %s" % type(args[0]))
             A = args[0].A
             B = args[0].B
             C = args[0].C
             D = args[0].D
-            dt = args[0].dt
-            # TODO: copy the remaining attributes
+            if 'dt' not in kwargs:
+                kwargs['dt'] = args[0].dt
 
         else:
             raise TypeError(
@@ -691,7 +690,6 @@ class StateSpace(NonlinearIOSystem, LTI):
 
     # Right multiplication of two state space systems (series interconnection)
     # Just need to convert LH argument to a state space object
-    # TODO: __rmul__ only works for special cases (??)
     def __rmul__(self, other):
         """Right multiply two LTI objects (serial connection)."""
         from .xferfcn import TransferFunction
@@ -720,7 +718,7 @@ class StateSpace(NonlinearIOSystem, LTI):
 
     # TODO: general __truediv__ requires descriptor system support
     def __truediv__(self, other):
-        """Division of state space systems byTFs, FRDs, scalars, and arrays"""
+        """Division of state space systems by TFs, FRDs, scalars, and arrays"""
         if not isinstance(other, (LTI, InputOutputSystem)):
             return self * (1/other)
         else:
@@ -1511,321 +1509,123 @@ class LinearICSystem(InterconnectedSystem, StateSpace):
     states = property(StateSpace._get_states, StateSpace._set_states)
 
 
-# TODO: add discrete time check
-def _convert_to_statespace(sys, use_prefix_suffix=False):
-    """Convert a system to state space form (if needed).
+# Define a state space object that is an I/O system
+def ss(*args, **kwargs):
+    r"""ss(A, B, C, D[, dt])
 
-    If sys is already a state space, then it is returned.  If sys is a
-    transfer function object, then it is converted to a state space and
-    returned.
+    Create a state space system.
 
-    Note: no renaming of inputs and outputs is performed; this should be done
-    by the calling function.
+    The function accepts either 1, 2, 4 or 5 parameters:
 
-    """
-    from .xferfcn import TransferFunction
-    import itertools
+    ``ss(sys)``
+        Convert a linear system into space system form. Always creates a
+        new system, even if sys is already a state space system.
 
-    if isinstance(sys, StateSpace):
-        return sys
+    ``ss(A, B, C, D)``
+        Create a state space system from the matrices of its state and
+        output equations:
 
-    elif isinstance(sys, TransferFunction):
-        # Make sure the transfer function is proper
-        if any([[len(num) for num in col] for col in sys.num] >
-               [[len(num) for num in col] for col in sys.den]):
-            raise ValueError("Transfer function is non-proper; can't "
-                             "convert to StateSpace system.")
+        .. math::
 
-        try:
-            from slycot import td04ad
+            dx/dt &= A x + B u \\
+                y &= C x + D  u
 
-            # Change the numerator and denominator arrays so that the transfer
-            # function matrix has a common denominator.
-            # matrices are also sized/padded to fit td04ad
-            num, den, denorder = sys.minreal()._common_den()
+    ``ss(A, B, C, D, dt)``
+        Create a discrete-time state space system from the matrices of
+        its state and output equations:
 
-            # transfer function to state space conversion now should work!
-            ssout = td04ad('C', sys.ninputs, sys.noutputs,
-                           denorder, den, num, tol=0)
+        .. math::
 
-            states = ssout[0]
-            newsys = StateSpace(
-                ssout[1][:states, :states], ssout[2][:states, :sys.ninputs],
-                ssout[3][:sys.noutputs, :states], ssout[4], sys.dt)
+            x[k+1] &= A x[k] + B u[k] \\
+              y[k] &= C x[k] + D u[k]
 
-        except ImportError:
-            # No Slycot.  Scipy tf->ss can't handle MIMO, but static
-            # MIMO is an easy special case we can check for here
-            maxn = max(max(len(n) for n in nrow)
-                       for nrow in sys.num)
-            maxd = max(max(len(d) for d in drow)
-                       for drow in sys.den)
-            if 1 == maxn and 1 == maxd:
-                D = empty((sys.noutputs, sys.ninputs), dtype=float)
-                for i, j in itertools.product(range(sys.noutputs),
-                                              range(sys.ninputs)):
-                    D[i, j] = sys.num[i][j][0] / sys.den[i][j][0]
-                newsys = StateSpace([], [], [], D, sys.dt)
-            else:
-                if sys.ninputs != 1 or sys.noutputs != 1:
-                    raise TypeError("No support for MIMO without slycot")
+        The matrices can be given as *array like* data types or strings.
+        Everything that the constructor of :class:`numpy.matrix` accepts is
+        permissible here too.
 
-                # TODO: do we want to squeeze first and check dimenations?
-                # I think this will fail if num and den aren't 1-D after
-                # the squeeze
-                A, B, C, D = \
-                    sp.signal.tf2ss(squeeze(sys.num), squeeze(sys.den))
-                newsys = StateSpace(A, B, C, D, sys.dt)
-
-        # Copy over the signal (and system) names
-        newsys._copy_names(
-            sys,
-            prefix_suffix_name='converted' if use_prefix_suffix else None)
-        return newsys
-
-    elif isinstance(sys, FrequencyResponseData):
-        raise TypeError("Can't convert FRD to StateSpace system.")
-
-    # If this is a matrix, try to create a constant feedthrough
-    try:
-        D = _ssmatrix(np.atleast_2d(sys))
-        return StateSpace([], [], [], D, dt=None)
-
-    except Exception:
-        raise TypeError("Can't convert given type to StateSpace system.")
-
-# TODO: add discrete time option
-def _rss_generate(
-        states, inputs, outputs, cdtype, strictly_proper=False, name=None):
-    """Generate a random state space.
-
-    This does the actual random state space generation expected from rss and
-    drss.  cdtype is 'c' for continuous systems and 'd' for discrete systems.
-
-    """
-
-    # Probability of repeating a previous root.
-    pRepeat = 0.05
-    # Probability of choosing a real root.  Note that when choosing a complex
-    # root, the conjugate gets chosen as well.  So the expected proportion of
-    # real roots is pReal / (pReal + 2 * (1 - pReal)).
-    pReal = 0.6
-    # Probability that an element in B or C will not be masked out.
-    pBCmask = 0.8
-    # Probability that an element in D will not be masked out.
-    pDmask = 0.3
-    # Probability that D = 0.
-    pDzero = 0.5
-
-    # Check for valid input arguments.
-    if states < 1 or states % 1:
-        raise ValueError("states must be a positive integer.  states = %g." %
-                         states)
-    if inputs < 1 or inputs % 1:
-        raise ValueError("inputs must be a positive integer.  inputs = %g." %
-                         inputs)
-    if outputs < 1 or outputs % 1:
-        raise ValueError("outputs must be a positive integer.  outputs = %g." %
-                         outputs)
-    if cdtype not in ['c', 'd']:
-        raise ValueError("cdtype must be `c` or `d`")
-
-    # Make some poles for A.  Preallocate a complex array.
-    poles = zeros(states) + zeros(states) * 0.j
-    i = 0
-
-    while i < states:
-        if rand() < pRepeat and i != 0 and i != states - 1:
-            # Small chance of copying poles, if we're not at the first or last
-            # element.
-            if poles[i-1].imag == 0:
-                # Copy previous real pole.
-                poles[i] = poles[i-1]
-                i += 1
-            else:
-                # Copy previous complex conjugate pair of poles.
-                poles[i:i+2] = poles[i-2:i]
-                i += 2
-        elif rand() < pReal or i == states - 1:
-            # No-oscillation pole.
-            if cdtype == 'c':
-                poles[i] = -exp(randn()) + 0.j
-            else:
-                poles[i] = 2. * rand() - 1.
-            i += 1
-        else:
-            # Complex conjugate pair of oscillating poles.
-            if cdtype == 'c':
-                poles[i] = complex(-exp(randn()), 3. * exp(randn()))
-            else:
-                mag = rand()
-                phase = 2. * math.pi * rand()
-                poles[i] = complex(mag * cos(phase), mag * sin(phase))
-            poles[i+1] = complex(poles[i].real, -poles[i].imag)
-            i += 2
-
-    # Now put the poles in A as real blocks on the diagonal.
-    A = zeros((states, states))
-    i = 0
-    while i < states:
-        if poles[i].imag == 0:
-            A[i, i] = poles[i].real
-            i += 1
-        else:
-            A[i, i] = A[i+1, i+1] = poles[i].real
-            A[i, i+1] = poles[i].imag
-            A[i+1, i] = -poles[i].imag
-            i += 2
-    # Finally, apply a transformation so that A is not block-diagonal.
-    while True:
-        T = randn(states, states)
-        try:
-            A = solve(T, A) @ T  # A = T \ A @ T
-            break
-        except LinAlgError:
-            # In the unlikely event that T is rank-deficient, iterate again.
-            pass
-
-    # Make the remaining matrices.
-    B = randn(states, inputs)
-    C = randn(outputs, states)
-    D = randn(outputs, inputs)
-
-    # Make masks to zero out some of the elements.
-    while True:
-        Bmask = rand(states, inputs) < pBCmask
-        if any(Bmask):  # Retry if we get all zeros.
-            break
-    while True:
-        Cmask = rand(outputs, states) < pBCmask
-        if any(Cmask):  # Retry if we get all zeros.
-            break
-    if rand() < pDzero:
-        Dmask = zeros((outputs, inputs))
-    else:
-        Dmask = rand(outputs, inputs) < pDmask
-
-    # Apply masks.
-    B = B * Bmask
-    C = C * Cmask
-    D = D * Dmask if not strictly_proper else zeros(D.shape)
-
-    if cdtype == 'c':
-        ss_args = (A, B, C, D)
-    else:
-        ss_args = (A, B, C, D, True)
-    return StateSpace(*ss_args, name=name)
-
-
-# Convert a MIMO system to a SISO system
-# TODO: add discrete time check
-def _mimo2siso(sys, input, output, warn_conversion=False):
-    # pylint: disable=W0622
-    """
-    Convert a MIMO system to a SISO system. (Convert a system with multiple
-    inputs and/or outputs, to a system with a single input and output.)
-
-    The input and output that are used in the SISO system can be selected
-    with the parameters ``input`` and ``output``. All other inputs are set
-    to 0, all other outputs are ignored.
-
-    If ``sys`` is already a SISO system, it will be returned unaltered.
+    ``ss(args, inputs=['u1', ..., 'up'], outputs=['y1', ..., 'yq'], states=['x1', ..., 'xn'])``
+        Create a system with named input, output, and state signals.
 
     Parameters
     ----------
-    sys : StateSpace
-        Linear (MIMO) system that should be converted.
-    input : int
-        Index of the input that will become the SISO system's only input.
-    output : int
-        Index of the output that will become the SISO system's only output.
-    warn_conversion : bool, optional
-        If `True`, print a message when sys is a MIMO system,
-        warning that a conversion will take place.  Default is False.
-
-    Returns
-    sys : StateSpace
-        The converted (SISO) system.
-    """
-    if not (isinstance(input, int) and isinstance(output, int)):
-        raise TypeError("Parameters ``input`` and ``output`` must both "
-                        "be integer numbers.")
-    if not (0 <= input < sys.ninputs):
-        raise ValueError("Selected input does not exist. "
-                         "Selected input: {sel}, "
-                         "number of system inputs: {ext}."
-                         .format(sel=input, ext=sys.ninputs))
-    if not (0 <= output < sys.noutputs):
-        raise ValueError("Selected output does not exist. "
-                         "Selected output: {sel}, "
-                         "number of system outputs: {ext}."
-                         .format(sel=output, ext=sys.noutputs))
-    # Convert sys to SISO if necessary
-    if sys.ninputs > 1 or sys.noutputs > 1:
-        if warn_conversion:
-            warn("Converting MIMO system to SISO system. "
-                 "Only input {i} and output {o} are used."
-                 .format(i=input, o=output))
-        # $X = A*X + B*U
-        #  Y = C*X + D*U
-        new_B = sys.B[:, input]
-        new_C = sys.C[output, :]
-        new_D = sys.D[output, input]
-        sys = StateSpace(
-            sys.A, new_B, new_C, new_D, sys.dt,
-            name=sys.name,
-            inputs=sys.input_labels[input], outputs=sys.output_labels[output])
-
-    return sys
-
-
-def _mimo2simo(sys, input, warn_conversion=False):
-    # pylint: disable=W0622
-    """
-    Convert a MIMO system to a SIMO system. (Convert a system with multiple
-    inputs and/or outputs, to a system with a single input but possibly
-    multiple outputs.)
-
-    The input that is used in the SIMO system can be selected with the
-    parameter ``input``. All other inputs are set to 0, all other
-    outputs are ignored.
-
-    If ``sys`` is already a SIMO system, it will be returned unaltered.
-
-    Parameters
-    ----------
-    sys: StateSpace
-        Linear (MIMO) system that should be converted.
-    input: int
-        Index of the input that will become the SIMO system's only input.
-    warn_conversion: bool
-        If True: print a warning message when sys is a MIMO system.
-        Warn that a conversion will take place.
+    sys : StateSpace or TransferFunction
+        A linear system.
+    A, B, C, D : array_like or string
+        System, control, output, and feed forward matrices.
+    dt : None, True or float, optional
+        System timebase. 0 (default) indicates continuous
+        time, True indicates discrete time with unspecified sampling
+        time, positive number is discrete time with specified
+        sampling time, None indicates unspecified timebase (either
+        continuous or discrete time).
+    inputs, outputs, states : str, or list of str, optional
+        List of strings that name the individual signals.  If this parameter
+        is not given or given as `None`, the signal names will be of the
+        form `s[i]` (where `s` is one of `u`, `y`, or `x`). See
+        :class:`InputOutputSystem` for more information.
+    name : string, optional
+        System name (used for specifying signals). If unspecified, a generic
+        name <sys[id]> is generated with a unique integer id.
 
     Returns
     -------
-    sys: StateSpace
-        The converted (SIMO) system.
+    out: :class:`StateSpace`
+        Linear input/output system.
+
+    Raises
+    ------
+    ValueError
+        If matrix sizes are not self-consistent.
+
+    See Also
+    --------
+    tf, ss2tf, tf2ss
+
+    Examples
+    --------
+    Create a Linear I/O system object from matrices.
+
+    >>> G = ct.ss([[-1, -2], [3, -4]], [[5], [7]], [[6, 8]], [[9]])
+
+    Convert a TransferFunction to a StateSpace object.
+
+    >>> sys_tf = ct.tf([2.], [1., 3])
+    >>> sys2 = ct.ss(sys_tf)
+
     """
-    if not (isinstance(input, int)):
-        raise TypeError("Parameter ``input`` be an integer number.")
-    if not (0 <= input < sys.ninputs):
-        raise ValueError("Selected input does not exist. "
-                         "Selected input: {sel}, "
-                         "number of system inputs: {ext}."
-                         .format(sel=input, ext=sys.ninputs))
-    # Convert sys to SISO if necessary
-    if sys.ninputs > 1:
-        if warn_conversion:
-            warn("Converting MIMO system to SIMO system. "
-                 "Only input {i} is used." .format(i=input))
-        # $X = A*X + B*U
-        #  Y = C*X + D*U
-        new_B = sys.B[:, input:input+1]
-        new_D = sys.D[:, input:input+1]
-        sys = StateSpace(sys.A, new_B, sys.C, new_D, sys.dt,
-                         name=sys.name,
-                         inputs=sys.input_labels[input], outputs=sys.output_labels)
+    # See if this is a nonlinear I/O system (legacy usage)
+    if len(args) > 0 and (hasattr(args[0], '__call__') or args[0] is None) \
+       and not isinstance(args[0], (InputOutputSystem, LTI)):
+        # Function as first (or second) argument => assume nonlinear IO system
+        warn("use nlsys() to create nonlinear I/O System",
+             PendingDeprecationWarning)
+        return NonlinearIOSystem(*args, **kwargs)
+
+    elif len(args) == 4 or len(args) == 5:
+        # Create a state space function from A, B, C, D[, dt]
+        sys = StateSpace(*args, **kwargs)
+
+    elif len(args) == 1:
+        sys = args[0]
+        if isinstance(sys, LTI):
+            # Check for system with no states and specified state names
+            if sys.nstates is None and 'states' in kwargs:
+                warn("state labels specified for "
+                     "non-unique state space realization")
+
+            # Create a state space system from an LTI system
+            sys = StateSpace(
+                _convert_to_statespace(
+                    sys,
+                    use_prefix_suffix=not sys._generic_name_check()),
+                **kwargs)
+
+        else:
+            raise TypeError("ss(sys): sys must be a StateSpace or "
+                            "TransferFunction object.  It is %s." % type(sys))
+    else:
+        raise TypeError(
+            "Needs 1, 4, or 5 arguments; received %i." % len(args))
 
     return sys
 
@@ -1838,8 +1638,8 @@ def tf2ss(*args, **kwargs):
     The function accepts either 1 or 2 parameters:
 
     ``tf2ss(sys)``
-        Convert a linear system into space space form. Always creates
-        a new system, even if sys is already a StateSpace object.
+        Convert a transfer function into space space form.  Equivalent to
+        `ss(sys)`.
 
     ``tf2ss(num, den)``
         Create a state space system from its numerator and denominator
@@ -1904,15 +1704,8 @@ def tf2ss(*args, **kwargs):
             _convert_to_statespace(TransferFunction(*args)), **kwargs)
 
     elif len(args) == 1:
-        sys = args[0]
-        if not isinstance(sys, TransferFunction):
-            raise TypeError("tf2ss(sys): sys must be a TransferFunction "
-                            "object.")
-        return StateSpace(
-            _convert_to_statespace(
-                sys,
-                use_prefix_suffix=not sys._generic_name_check()),
-            **kwargs)
+        return ss(*args, **kwargs)
+    
     else:
         raise ValueError("Needs 1 or 2 arguments; received %i." % len(args))
 
@@ -1991,132 +1784,6 @@ def linfnorm(sys, tol=1e-10):
         fpeak /= sys.dt
 
     return gpeak, fpeak
-
-
-# Define a state space object that is an I/O system
-def ss(*args, **kwargs):
-    r"""ss(A, B, C, D[, dt])
-
-    Create a state space system.
-
-    The function accepts either 1, 2, 4 or 5 parameters:
-
-    ``ss(sys)``
-        Convert a linear system into space system form. Always creates a
-        new system, even if sys is already a state space system.
-
-    ``ss(updfcn, outfcn)``
-        Create a nonlinear input/output system with update function ``updfcn``
-        and output function ``outfcn``.  See :class:`NonlinearIOSystem` for
-        more information.
-
-    ``ss(A, B, C, D)``
-        Create a state space system from the matrices of its state and
-        output equations:
-
-        .. math::
-
-            dx/dt &= A x + B u \\
-                y &= C x + D  u
-
-    ``ss(A, B, C, D, dt)``
-        Create a discrete-time state space system from the matrices of
-        its state and output equations:
-
-        .. math::
-
-            x[k+1] &= A x[k] + B u[k] \\
-              y[k] &= C x[k] + D u[k]
-
-        The matrices can be given as *array like* data types or strings.
-        Everything that the constructor of :class:`numpy.matrix` accepts is
-        permissible here too.
-
-    ``ss(args, inputs=['u1', ..., 'up'], outputs=['y1', ..., 'yq'], states=['x1', ..., 'xn'])``
-        Create a system with named input, output, and state signals.
-
-    Parameters
-    ----------
-    sys : StateSpace or TransferFunction
-        A linear system.
-    A, B, C, D : array_like or string
-        System, control, output, and feed forward matrices.
-    dt : None, True or float, optional
-        System timebase. 0 (default) indicates continuous
-        time, True indicates discrete time with unspecified sampling
-        time, positive number is discrete time with specified
-        sampling time, None indicates unspecified timebase (either
-        continuous or discrete time).
-    inputs, outputs, states : str, or list of str, optional
-        List of strings that name the individual signals.  If this parameter
-        is not given or given as `None`, the signal names will be of the
-        form `s[i]` (where `s` is one of `u`, `y`, or `x`). See
-        :class:`InputOutputSystem` for more information.
-    name : string, optional
-        System name (used for specifying signals). If unspecified, a generic
-        name <sys[id]> is generated with a unique integer id.
-
-    Returns
-    -------
-    out: :class:`StateSpace`
-        Linear input/output system.
-
-    Raises
-    ------
-    ValueError
-        If matrix sizes are not self-consistent.
-
-    See Also
-    --------
-    tf
-    ss2tf
-    tf2ss
-
-    Examples
-    --------
-    Create a Linear I/O system object from matrices.
-
-    >>> G = ct.ss([[-1, -2], [3, -4]], [[5], [7]], [[6, 8]], [[9]])
-
-    Convert a TransferFunction to a StateSpace object.
-
-    >>> sys_tf = ct.tf([2.], [1., 3])
-    >>> sys2 = ct.ss(sys_tf)
-
-    """
-    # See if this is a nonlinear I/O system
-    if len(args) > 0 and (hasattr(args[0], '__call__') or args[0] is None) \
-       and not isinstance(args[0], (InputOutputSystem, LTI)):
-        # Function as first (or second) argument => assume nonlinear IO system
-        return NonlinearIOSystem(*args, **kwargs)
-
-    elif len(args) == 4 or len(args) == 5:
-        # Create a state space function from A, B, C, D[, dt]
-        sys = StateSpace(*args, **kwargs)
-
-    elif len(args) == 1:
-        sys = args[0]
-        if isinstance(sys, LTI):
-            # Check for system with no states and specified state names
-            if sys.nstates is None and 'states' in kwargs:
-                warn("state labels specified for "
-                     "non-unique state space realization")
-
-            # Create a state space system from an LTI system
-            sys = StateSpace(
-                _convert_to_statespace(
-                    sys,
-                    use_prefix_suffix=not sys._generic_name_check()),
-                **kwargs)
-
-        else:
-            raise TypeError("ss(sys): sys must be a StateSpace or "
-                            "TransferFunction object.  It is %s." % type(sys))
-    else:
-        raise TypeError(
-            "Needs 1, 4, or 5 arguments; received %i." % len(args))
-
-    return sys
 
 
 def rss(states=1, outputs=1, inputs=1, strictly_proper=False, **kwargs):
@@ -2351,6 +2018,10 @@ def summing_junction(
     return StateSpace(
         ss_sys, inputs=input_names, outputs=output_names, name=name)
 
+#
+# Utility functions
+#
+
 
 def _ssmatrix(data, axis=1):
     """Convert argument to a (possibly empty) 2D state space matrix.
@@ -2422,3 +2093,316 @@ def _f2s(f):
         s += r'&\hspace{-1em}\phantom{\cdot}'
 
     return s
+
+
+def _convert_to_statespace(sys, use_prefix_suffix=False):
+    """Convert a system to state space form (if needed).
+
+    If sys is already a state space, then it is returned.  If sys is a
+    transfer function object, then it is converted to a state space and
+    returned.
+
+    Note: no renaming of inputs and outputs is performed; this should be done
+    by the calling function.
+
+    """
+    from .xferfcn import TransferFunction
+    import itertools
+
+    if isinstance(sys, StateSpace):
+        return sys
+
+    elif isinstance(sys, TransferFunction):
+        # Make sure the transfer function is proper
+        if any([[len(num) for num in col] for col in sys.num] >
+               [[len(num) for num in col] for col in sys.den]):
+            raise ValueError("transfer function is non-proper; can't "
+                             "convert to StateSpace system")
+
+        try:
+            from slycot import td04ad
+
+            # Change the numerator and denominator arrays so that the transfer
+            # function matrix has a common denominator.
+            # matrices are also sized/padded to fit td04ad
+            num, den, denorder = sys.minreal()._common_den()
+
+            # transfer function to state space conversion now should work!
+            ssout = td04ad('C', sys.ninputs, sys.noutputs,
+                           denorder, den, num, tol=0)
+
+            states = ssout[0]
+            newsys = StateSpace(
+                ssout[1][:states, :states], ssout[2][:states, :sys.ninputs],
+                ssout[3][:sys.noutputs, :states], ssout[4], sys.dt)
+
+        except ImportError:
+            # No Slycot.  Scipy tf->ss can't handle MIMO, but static
+            # MIMO is an easy special case we can check for here
+            maxn = max(max(len(n) for n in nrow)
+                       for nrow in sys.num)
+            maxd = max(max(len(d) for d in drow)
+                       for drow in sys.den)
+            if 1 == maxn and 1 == maxd:
+                D = empty((sys.noutputs, sys.ninputs), dtype=float)
+                for i, j in itertools.product(range(sys.noutputs),
+                                              range(sys.ninputs)):
+                    D[i, j] = sys.num[i][j][0] / sys.den[i][j][0]
+                newsys = StateSpace([], [], [], D, sys.dt)
+            else:
+                if sys.ninputs != 1 or sys.noutputs != 1:
+                    raise TypeError("No support for MIMO without slycot")
+
+                A, B, C, D = \
+                    sp.signal.tf2ss(squeeze(sys.num), squeeze(sys.den))
+                newsys = StateSpace(A, B, C, D, sys.dt)
+
+        # Copy over the signal (and system) names
+        newsys._copy_names(
+            sys,
+            prefix_suffix_name='converted' if use_prefix_suffix else None)
+        return newsys
+
+    elif isinstance(sys, FrequencyResponseData):
+        raise TypeError("Can't convert FRD to StateSpace system.")
+
+    # If this is a matrix, try to create a constant feedthrough
+    try:
+        D = _ssmatrix(np.atleast_2d(sys))
+        return StateSpace([], [], [], D, dt=None)
+
+    except Exception:
+        raise TypeError("Can't convert given type to StateSpace system.")
+
+
+def _rss_generate(
+        states, inputs, outputs, cdtype, strictly_proper=False, name=None):
+    """Generate a random state space.
+
+    This does the actual random state space generation expected from rss and
+    drss.  cdtype is 'c' for continuous systems and 'd' for discrete systems.
+
+    """
+
+    # Probability of repeating a previous root.
+    pRepeat = 0.05
+    # Probability of choosing a real root.  Note that when choosing a complex
+    # root, the conjugate gets chosen as well.  So the expected proportion of
+    # real roots is pReal / (pReal + 2 * (1 - pReal)).
+    pReal = 0.6
+    # Probability that an element in B or C will not be masked out.
+    pBCmask = 0.8
+    # Probability that an element in D will not be masked out.
+    pDmask = 0.3
+    # Probability that D = 0.
+    pDzero = 0.5
+
+    # Check for valid input arguments.
+    if states < 1 or states % 1:
+        raise ValueError("states must be a positive integer.  states = %g." %
+                         states)
+    if inputs < 1 or inputs % 1:
+        raise ValueError("inputs must be a positive integer.  inputs = %g." %
+                         inputs)
+    if outputs < 1 or outputs % 1:
+        raise ValueError("outputs must be a positive integer.  outputs = %g." %
+                         outputs)
+    if cdtype not in ['c', 'd']:
+        raise ValueError("cdtype must be `c` or `d`")
+
+    # Make some poles for A.  Preallocate a complex array.
+    poles = zeros(states) + zeros(states) * 0.j
+    i = 0
+
+    while i < states:
+        if rand() < pRepeat and i != 0 and i != states - 1:
+            # Small chance of copying poles, if we're not at the first or last
+            # element.
+            if poles[i-1].imag == 0:
+                # Copy previous real pole.
+                poles[i] = poles[i-1]
+                i += 1
+            else:
+                # Copy previous complex conjugate pair of poles.
+                poles[i:i+2] = poles[i-2:i]
+                i += 2
+        elif rand() < pReal or i == states - 1:
+            # No-oscillation pole.
+            if cdtype == 'c':
+                poles[i] = -exp(randn()) + 0.j
+            else:
+                poles[i] = 2. * rand() - 1.
+            i += 1
+        else:
+            # Complex conjugate pair of oscillating poles.
+            if cdtype == 'c':
+                poles[i] = complex(-exp(randn()), 3. * exp(randn()))
+            else:
+                mag = rand()
+                phase = 2. * math.pi * rand()
+                poles[i] = complex(mag * cos(phase), mag * sin(phase))
+            poles[i+1] = complex(poles[i].real, -poles[i].imag)
+            i += 2
+
+    # Now put the poles in A as real blocks on the diagonal.
+    A = zeros((states, states))
+    i = 0
+    while i < states:
+        if poles[i].imag == 0:
+            A[i, i] = poles[i].real
+            i += 1
+        else:
+            A[i, i] = A[i+1, i+1] = poles[i].real
+            A[i, i+1] = poles[i].imag
+            A[i+1, i] = -poles[i].imag
+            i += 2
+    # Finally, apply a transformation so that A is not block-diagonal.
+    while True:
+        T = randn(states, states)
+        try:
+            A = solve(T, A) @ T  # A = T \ A @ T
+            break
+        except LinAlgError:
+            # In the unlikely event that T is rank-deficient, iterate again.
+            pass
+
+    # Make the remaining matrices.
+    B = randn(states, inputs)
+    C = randn(outputs, states)
+    D = randn(outputs, inputs)
+
+    # Make masks to zero out some of the elements.
+    while True:
+        Bmask = rand(states, inputs) < pBCmask
+        if any(Bmask):  # Retry if we get all zeros.
+            break
+    while True:
+        Cmask = rand(outputs, states) < pBCmask
+        if any(Cmask):  # Retry if we get all zeros.
+            break
+    if rand() < pDzero:
+        Dmask = zeros((outputs, inputs))
+    else:
+        Dmask = rand(outputs, inputs) < pDmask
+
+    # Apply masks.
+    B = B * Bmask
+    C = C * Cmask
+    D = D * Dmask if not strictly_proper else zeros(D.shape)
+
+    if cdtype == 'c':
+        ss_args = (A, B, C, D)
+    else:
+        ss_args = (A, B, C, D, True)
+    return StateSpace(*ss_args, name=name)
+
+
+def _mimo2siso(sys, input, output, warn_conversion=False):
+    # pylint: disable=W0622
+    """
+    Convert a MIMO system to a SISO system. (Convert a system with multiple
+    inputs and/or outputs, to a system with a single input and output.)
+
+    The input and output that are used in the SISO system can be selected
+    with the parameters ``input`` and ``output``. All other inputs are set
+    to 0, all other outputs are ignored.
+
+    If ``sys`` is already a SISO system, it will be returned unaltered.
+
+    Parameters
+    ----------
+    sys : StateSpace
+        Linear (MIMO) system that should be converted.
+    input : int
+        Index of the input that will become the SISO system's only input.
+    output : int
+        Index of the output that will become the SISO system's only output.
+    warn_conversion : bool, optional
+        If `True`, print a message when sys is a MIMO system,
+        warning that a conversion will take place.  Default is False.
+
+    Returns
+    sys : StateSpace
+        The converted (SISO) system.
+    """
+    if not (isinstance(input, int) and isinstance(output, int)):
+        raise TypeError("Parameters ``input`` and ``output`` must both "
+                        "be integer numbers.")
+    if not (0 <= input < sys.ninputs):
+        raise ValueError("Selected input does not exist. "
+                         "Selected input: {sel}, "
+                         "number of system inputs: {ext}."
+                         .format(sel=input, ext=sys.ninputs))
+    if not (0 <= output < sys.noutputs):
+        raise ValueError("Selected output does not exist. "
+                         "Selected output: {sel}, "
+                         "number of system outputs: {ext}."
+                         .format(sel=output, ext=sys.noutputs))
+    # Convert sys to SISO if necessary
+    if sys.ninputs > 1 or sys.noutputs > 1:
+        if warn_conversion:
+            warn("Converting MIMO system to SISO system. "
+                 "Only input {i} and output {o} are used."
+                 .format(i=input, o=output))
+        # $X = A*X + B*U
+        #  Y = C*X + D*U
+        new_B = sys.B[:, input]
+        new_C = sys.C[output, :]
+        new_D = sys.D[output, input]
+        sys = StateSpace(
+            sys.A, new_B, new_C, new_D, sys.dt,
+            name=sys.name,
+            inputs=sys.input_labels[input], outputs=sys.output_labels[output])
+
+    return sys
+
+
+def _mimo2simo(sys, input, warn_conversion=False):
+    # pylint: disable=W0622
+    """
+    Convert a MIMO system to a SIMO system. (Convert a system with multiple
+    inputs and/or outputs, to a system with a single input but possibly
+    multiple outputs.)
+
+    The input that is used in the SIMO system can be selected with the
+    parameter ``input``. All other inputs are set to 0, all other
+    outputs are ignored.
+
+    If ``sys`` is already a SIMO system, it will be returned unaltered.
+
+    Parameters
+    ----------
+    sys: StateSpace
+        Linear (MIMO) system that should be converted.
+    input: int
+        Index of the input that will become the SIMO system's only input.
+    warn_conversion: bool
+        If True: print a warning message when sys is a MIMO system.
+        Warn that a conversion will take place.
+
+    Returns
+    -------
+    sys: StateSpace
+        The converted (SIMO) system.
+    """
+    if not (isinstance(input, int)):
+        raise TypeError("Parameter ``input`` be an integer number.")
+    if not (0 <= input < sys.ninputs):
+        raise ValueError("Selected input does not exist. "
+                         "Selected input: {sel}, "
+                         "number of system inputs: {ext}."
+                         .format(sel=input, ext=sys.ninputs))
+    # Convert sys to SISO if necessary
+    if sys.ninputs > 1:
+        if warn_conversion:
+            warn("Converting MIMO system to SIMO system. "
+                 "Only input {i} is used." .format(i=input))
+        # $X = A*X + B*U
+        #  Y = C*X + D*U
+        new_B = sys.B[:, input:input+1]
+        new_D = sys.D[:, input:input+1]
+        sys = StateSpace(
+            sys.A, new_B, sys.C, new_D, sys.dt, name=sys.name,
+            inputs=sys.input_labels[input], outputs=sys.output_labels)
+
+    return sys
