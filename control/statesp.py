@@ -2371,14 +2371,8 @@ def _ssmatrix(data, axis=1):
     arr : 2D array, with shape (0, 0) if a is empty
 
     """
-    # Convert the data into an array or matrix, as configured
-    # If data is passed as a string, use (deprecated?) matrix constructor
-    if config.defaults['statesp.use_numpy_matrix']:
-        arr = np.matrix(data, dtype=float)
-    elif isinstance(data, str):
-        arr = np.array(np.matrix(data, dtype=float))
-    else:
-        arr = np.array(data, dtype=float)
+    # Convert the data into an array
+    arr = np.array(data, dtype=float)
     ndim = arr.ndim
     shape = arr.shape
 

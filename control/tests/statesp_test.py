@@ -22,8 +22,7 @@ from control.statesp import StateSpace, _convert_to_statespace, tf2ss, \
     _statesp_defaults, _rss_generate, linfnorm, ss, rss, drss
 from control.xferfcn import TransferFunction, ss2tf
 
-
-from .conftest import editsdefaults
+from .conftest import editsdefaults, slycotonly
 
 
 class TestStateSpace:
