@@ -2422,18 +2422,18 @@ def interconnect(
             elif not found_system:
                 raise ValueError("could not find signal %s" % sname)
         else:
-            # TODO: refactor code to remove duplication
             if isinstance(connection, list):
                 # Passed a list => create input map
                 dprint(f"  detected input list")
-                new_inplist.append([])
+                signal_list = []
                 for spec in connection:
                     isys, indices, gain = _parse_spec(syslist, spec, 'input')
                     for isig in indices:
-                        new_inplist[-1].append((isys, isig, gain))
-                        dprint(f"    adding input {(isys, isig, gain)}")
+                        signal_list.append((isys, isig, gain))
+                        dprint(f"    adding input {(isys, isig, gain)} to list")
+                new_inplist.append(signal_list)
             else:
-                # Passed a single single => single input
+                # Passed a single signal name => add individual input(s)
                 isys, indices, gain = _parse_spec(syslist, connection, 'input')
                 for isig in indices:
                     new_inplist.append((isys, isig, gain))
