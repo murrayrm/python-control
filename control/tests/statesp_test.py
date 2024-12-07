@@ -486,7 +486,7 @@ class TestStateSpace:
          (slice(None, None, 1), slice(None, None, 2)),
          (0, slice(1, 2, 1)),
          (slice(0, 1, 1), slice(1, 2, 1)),
-         # ([0, 1], [0]),         # lists of indices
+         ([0, 1], [0]),         # lists of indices
          ])
     @pytest.mark.parametrize("named", [False, True])
     def test_array_access_ss(self, outdx, inpdx, named):
@@ -499,8 +499,8 @@ class TestStateSpace:
 
         if named:
             # Use names instead of numbers (and re-convert in statesp)
-            outnames = sys1.output_labels[outdx]
-            inpnames = sys1.input_labels[inpdx]
+            outnames = np.array(sys1.output_labels)[outdx].tolist()
+            inpnames = np.array(sys1.input_labels)[inpdx].tolist()
             sys1_01 = sys1[outnames, inpnames]
         else:
             sys1_01 = sys1[outdx, inpdx]
@@ -512,11 +512,14 @@ class TestStateSpace:
         np.testing.assert_array_almost_equal(sys1_01.A, sys1.A)
         np.testing.assert_array_almost_equal(sys1_01.B, sys1.B[:, inpdx])
         np.testing.assert_array_almost_equal(sys1_01.C, sys1.C[outdx, :])
-        np.testing.assert_array_almost_equal(sys1_01.D, sys1.D[outdx, inpdx])
+        np.testing.assert_array_almost_equal(
+            sys1_01.D, sys1.D[outdx, :][:, inpdx])
 
         assert sys1.dt == sys1_01.dt
-        assert sys1_01.input_labels == sys1.input_labels[inpdx]
-        assert sys1_01.output_labels == sys1.output_labels[outdx]
+        assert sys1_01.input_labels == np.array(
+            sys1.input_labels)[inpdx].tolist()
+        assert sys1_01.output_labels == np.array(
+            sys1.output_labels)[outdx].tolist()
         assert sys1_01.name == sys1.name + "$indexed"
 
     def test_dc_gain_cont(self):
