@@ -187,7 +187,7 @@ def test_unsupported_norm():
 @pytest.mark.skipif(ct.slycot_check(), reason="slycot installed")
 def test_slycot_import_error():
     """Test behavior when slycot is not installed."""
-    with pytest.raises(ct.ControlSlycot, match="Can't find slycot module"):
+    with pytest.raises(ct.ControlSlycot, match="Can't find slycot"):
         _h2norm_slycot(ct.tf([1], [1, 0, 1]))
 
 
