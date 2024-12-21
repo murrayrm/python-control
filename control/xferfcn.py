@@ -1736,7 +1736,7 @@ def zpk(zeros, poles, gain, *args, **kwargs):
 
     Returns
     -------
-    out: `TransferFunction`
+    out : `TransferFunction`
         Transfer function with given zeros, poles, and gain.
 
     Examples
@@ -1788,7 +1788,7 @@ def ss2tf(*args, **kwargs):
 
     Returns
     -------
-    out: TransferFunction
+    out : TransferFunction
         New linear system in transfer function form
 
     Other Parameters

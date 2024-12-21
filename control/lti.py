@@ -240,7 +240,7 @@ def zeros(sys):
 
     Returns
     -------
-    zeros: ndarray
+    zeros : ndarray
         Array that contains the system's zeros.
 
     See Also

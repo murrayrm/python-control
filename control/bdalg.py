@@ -382,7 +382,7 @@ def append(*sys, **kwargs):
 
     Returns
     -------
-    out: :class:`StateSpace`
+    out : :class:`StateSpace`
         Combined system, with input/output vectors consisting of all
         input/output vectors appended.
 

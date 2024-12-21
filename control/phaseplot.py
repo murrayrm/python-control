@@ -748,7 +748,7 @@ def meshgrid(xvals, yvals):
 
     Returns
     -------
-    grid: 2D array
+    grid : 2D array
         Array of points with shape (n * m, 2) defining the mesh
 
     """
@@ -778,7 +778,7 @@ def circlegrid(centers, radius, num):
 
     Returns
     -------
-    grid: 2D array
+    grid : 2D array
         Array of points with shape (p * num, 2) defining the circles.
 
     """
