@@ -38,8 +38,9 @@ __all__ = ['lqe', 'dlqe', 'create_estimator_iosystem', 'white_noise',
 def lqe(*args, **kwargs):
     r"""lqe(A, G, C, QN, RN, [, NN])
 
-    Linear quadratic estimator design (Kalman filter) for continuous-time
-    systems. Given the system
+    Continuous-time linear quadratic estimator (Kalman filter).
+
+    Given the continuous time system
 
     .. math::
 
@@ -72,12 +73,12 @@ def lqe(*args, **kwargs):
     Parameters
     ----------
     A, G, C : 2D array_like
-        Dynamics, process noise (disturbance), and output matrices
+        Dynamics, process noise (disturbance), and output matrices.
     sys : LTI (StateSpace or TransferFunction)
         Linear I/O system, with the process noise input taken as the system
         input.
     QN, RN : 2D array_like
-        Process and sensor noise covariance matrices
+        Process and sensor noise covariance matrices.
     NN : 2D array, optional
         Cross covariance matrix.  Not currently implemented.
     method : str, optional
@@ -88,16 +89,16 @@ def lqe(*args, **kwargs):
     Returns
     -------
     L : 2D array
-        Kalman estimator gain
+        Kalman estimator gain.
     P : 2D array
-        Solution to Riccati equation
+        Solution to Riccati equation.
 
         .. math::
 
             A P + P A^T - (P C^T + G N) R^{-1}  (C P + N^T G^T) + G Q G^T = 0
 
     E : 1D array
-        Eigenvalues of estimator poles eig(A - L C)
+        Eigenvalues of estimator poles eig(A - L C).
 
     Notes
     -----
@@ -185,8 +186,9 @@ def lqe(*args, **kwargs):
 def dlqe(*args, **kwargs):
     r"""dlqe(A, G, C, QN, RN, [, N])
 
-    Linear quadratic estimator design (Kalman filter) for discrete-time
-    systems. Given the system
+    Discrete-time linear quadratic estimator (Kalman filter).
+
+    Given the system
 
     .. math::
 
@@ -209,11 +211,11 @@ def dlqe(*args, **kwargs):
     Parameters
     ----------
     A, G : 2D array_like
-        Dynamics and noise input matrices
+        Dynamics and noise input matrices.
     QN, RN : 2D array_like
-        Process and sensor noise covariance matrices
+        Process and sensor noise covariance matrices.
     NN : 2D array, optional
-        Cross covariance matrix (not yet supported)
+        Cross covariance matrix (not yet supported).
     method : str, optional
         Set the method used for computing the result.  Current methods are
         'slycot' and 'scipy'.  If set to None (default), try 'slycot' first
@@ -222,16 +224,16 @@ def dlqe(*args, **kwargs):
     Returns
     -------
     L : 2D array
-        Kalman estimator gain
+        Kalman estimator gain.
     P : 2D array
-        Solution to Riccati equation
+        Solution to Riccati equation.
 
         .. math::
 
             A P + P A^T - (P C^T + G N) R^{-1}  (C P + N^T G^T) + G Q G^T = 0
 
     E : 1D array
-        Eigenvalues of estimator poles eig(A - L C)
+        Eigenvalues of estimator poles eig(A - L C).
 
     Examples
     --------
@@ -497,7 +499,7 @@ def create_estimator_iosystem(
     else:
         # Generate labels corresponding to measured values from C
         measurement_labels = _process_labels(
-            measurement_labels, 'measurement', 
+            measurement_labels, 'measurement',
             [f'y[{i}]' for i in range(C.shape[0])])
     control_labels = _process_labels(
         control_labels, 'control',

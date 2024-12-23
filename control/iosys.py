@@ -38,6 +38,7 @@ _iosys_defaults = {
 
 # Named signal class
 class NamedSignal(np.ndarray):
+    """Named signal class."""
     def __new__(cls, input_array, signal_labels=None, trace_labels=None):
         # See https://numpy.org/doc/stable/user/basics.subclassing.html
         obj = np.asarray(input_array).view(cls)     # Cast to our class type
@@ -599,7 +600,7 @@ class InputOutputSystem(object):
         Parameters
         ----------
         sys : Named I/O system
-            System to be checked
+            System to be checked.
         strict : bool, optional
             If strict is True, make sure that timebase is not None.  Default
             is False.
@@ -611,7 +612,7 @@ class InputOutputSystem(object):
 
     def isdtime(self, strict=False):
         """
-        Check to see if a system is a discrete-time system
+        Check to see if a system is a discrete-time system.
 
         Parameters
         ----------
@@ -644,9 +645,9 @@ def issiso(sys, strict=False):
     Parameters
     ----------
     sys : I/O or LTI system
-        System to be checked
+        System to be checked.
     strict : bool (default = False)
-        If strict is True, do not treat scalars as SISO
+        If strict is True, do not treat scalars as SISO.
     """
     if isinstance(sys, (int, float, complex, np.number)) and not strict:
         return True
@@ -695,12 +696,13 @@ def timebase(sys, strict=True):
 
 def common_timebase(dt1, dt2):
     """
-    Find the common timebase when interconnecting systems
+    Find the common timebase when interconnecting systems.
 
     Parameters
     ----------
-    dt1, dt2 : number or system with a 'dt' attribute (e.g. TransferFunction
-        or StateSpace system)
+    dt1, dt2 : InputOutputSystem or float
+        Number or system with a 'dt' attribute (e.g. TransferFunction
+        or StateSpace system).
 
     Returns
     -------

@@ -87,16 +87,16 @@ def place(A, B, p):
     Parameters
     ----------
     A : 2D array_like
-        Dynamics matrix
+        Dynamics matrix.
     B : 2D array_like
-        Input matrix
+        Input matrix.
     p : 1D array_like
-        Desired eigenvalue locations
+        Desired eigenvalue locations.
 
     Returns
     -------
     K : 2D array (or matrix)
-        Gain such that A - B K has eigenvalues given in p
+        Gain such that A - B K has eigenvalues given in p.
 
     Notes
     -----
@@ -149,16 +149,17 @@ def place(A, B, p):
 
 def place_varga(A, B, p, dtime=False, alpha=None):
     """Place closed loop eigenvalues.
+
     K = place_varga(A, B, p, dtime=False, alpha=None)
 
     Parameters
     ----------
     A : 2D array_like
-        Dynamics matrix
+        Dynamics matrix.
     B : 2D array_like
-        Input matrix
+        Input matrix.
     p : 1D array_like
-        Desired eigenvalue locations
+        Desired eigenvalue locations.
     dtime : bool, optional
         False for continuous time pole placement or True for discrete time.
         The default is dtime=False.
@@ -259,15 +260,15 @@ def acker(A, B, poles):
     Parameters
     ----------
     A, B : 2D array_like
-        State and input matrix of the system
+        State and input matrix of the system.
     poles : 1D array_like
-        Desired eigenvalue locations
+        Desired eigenvalue locations.
 
     Returns
     -------
     K : 2D array (or matrix)
-        Gains such that A - B K has given eigenvalues
-    
+        Gains such that A - B K has given eigenvalues.
+
     See Also
     --------
     place, place_varga
@@ -320,13 +321,13 @@ def lqr(*args, **kwargs):
     Parameters
     ----------
     A, B : 2D array_like
-        Dynamics and input matrices
+        Dynamics and input matrices.
     sys : LTI StateSpace system
-        Linear system
+        Linear system.
     Q, R : 2D array
-        State and input weight matrices
+        State and input weight matrices.
     N : 2D array, optional
-        Cross weight matrix
+        Cross weight matrix.
     integral_action : ndarray, optional
         If this keyword is specified, the controller includes integral
         action in addition to state feedback.  The value of the
@@ -343,11 +344,11 @@ def lqr(*args, **kwargs):
     Returns
     -------
     K : 2D array (or matrix)
-        State feedback gains
+        State feedback gains.
     S : 2D array (or matrix)
-        Solution to Riccati equation
+        Solution to Riccati equation.
     E : 1D array
-        Eigenvalues of the closed loop system
+        Eigenvalues of the closed loop system.
 
     See Also
     --------
@@ -467,13 +468,13 @@ def dlqr(*args, **kwargs):
     Parameters
     ----------
     A, B : 2D array
-        Dynamics and input matrices
+        Dynamics and input matrices.
     dsys : LTI :class:`StateSpace`
-        Discrete-time linear system
+        Discrete-time linear system.
     Q, R : 2D array
-        State and input weight matrices
+        State and input weight matrices.
     N : 2D array, optional
-        Cross weight matrix
+        Cross weight matrix.
     integral_action : ndarray, optional
         If this keyword is specified, the controller includes integral
         action in addition to state feedback.  The value of the
@@ -490,11 +491,11 @@ def dlqr(*args, **kwargs):
     Returns
     -------
     K : 2D array (or matrix)
-        State feedback gains
+        State feedback gains.
     S : 2D array (or matrix)
-        Solution to Riccati equation
+        Solution to Riccati equation.
     E : 1D array
-        Eigenvalues of the closed loop system
+        Eigenvalues of the closed loop system.
 
     See Also
     --------
@@ -1079,14 +1080,14 @@ def ctrb(A, B, t=None):
     Parameters
     ----------
     A, B : array_like or string
-        Dynamics and input matrix of the system
+        Dynamics and input matrix of the system.
     t : None or integer
-        maximum time horizon of the controllability matrix, max = A.shape[0]
+        Maximum time horizon of the controllability matrix, max = A.shape[0].
 
     Returns
     -------
     C : 2D array (or matrix)
-        Controllability matrix
+        Controllability matrix.
 
     Examples
     --------
@@ -1128,14 +1129,14 @@ def obsv(A, C, t=None):
     Parameters
     ----------
     A, C : array_like or string
-        Dynamics and output matrix of the system
+        Dynamics and output matrix of the system.
     t : None or integer
-        maximum time horizon of the controllability matrix, max = A.shape[0]
+        Maximum time horizon of the controllability matrix, max = A.shape[0].
 
     Returns
     -------
     O : 2D array (or matrix)
-        Observability matrix
+        Observability matrix.
 
     Examples
     --------
@@ -1175,16 +1176,16 @@ def gram(sys, type):
     Parameters
     ----------
     sys : StateSpace
-        System description
+        System description.
     type : String
         Type of desired computation.  `type` is either 'c' (controllability)
         or 'o' (observability). To compute the Cholesky factors of Gramians
-        use 'cf' (controllability) or 'of' (observability)
+        use 'cf' (controllability) or 'of' (observability).
 
     Returns
     -------
     gram : 2D array (or matrix)
-        Gramian of system
+        Gramian of system.
 
     Raises
     ------
