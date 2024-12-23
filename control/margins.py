@@ -503,7 +503,7 @@ def phase_crossover_frequencies(sys):
 
 
 def margin(*args):
-    """margin(sysdata)
+    """margin(sys) | margin(mag, phase, omega)
 
     Gain and phase margins and associated crossover frequencies.
 
