@@ -36,23 +36,6 @@ function_skiplist = [
     control.tf,                                 # tested separately below
 ]
 
-# Checksums to use for checking whether a docstring has changed
-function_docstring_hash = {
-    control.append:                     '4b2e2e04fdba27076e331f96869cc2d0',
-    control.describing_function_plot:   '38bb19bb5071b668595ff783f30b04df',
-    control.dlqe:                       '5c4b32bd18fb6247d4b0d0b91b321353',
-    control.dlqr:                       '31b171350f28659d058315c46cd1c424',
-    control.lqe:                        'd335642ab4976c48a154df52f4f12ef3',
-    control.lqr:                        'e7a5e4767539a4e8d6a3b156ff83d34f',
-    control.margin:                     '79ccd1ced7c5c179813abb2524848e99',
-    control.parallel:                   '1727c03d7058b49f9c2b09fcedbfde6e',
-    control.series:                     'df069d2fe679b4451840c4a3bb031c0d',
-    control.ss2tf:                      '9193113508a2d4d65591dee505edce66',
-    control.tf2ss:                      '3cf8609e4645e324d99a4c61a96be561',
-    control.markov:                     '686e14579bcc77d19e992ae553f6b478',
-    control.gangof4:                    '9b64e712396110c620003cbd46f7752d',
-}
-
 # List of keywords that we can skip testing (special cases)
 keyword_skiplist = {
     control.input_output_response: ['method'],
@@ -171,6 +154,9 @@ def test_parameter_docs(module, prefix):
         # Get the signature for the function
         sig = inspect.signature(obj)
 
+	# If first argument is *args, try to use docstring instead
+        sig = _replace_var_positional_with_docstring(sig, doc)
+
         # Go through each parameter and make sure it is in the docstring
         for argname, par in sig.parameters.items():
             # Look for arguments that we can skip
@@ -180,22 +166,11 @@ def test_parameter_docs(module, prefix):
 
             # Check for positional arguments (*arg)
             if par.kind == inspect.Parameter.VAR_POSITIONAL:
-                if obj in function_docstring_hash:
-                    import hashlib
-                    hash = hashlib.md5(
-                        (docstring + source).encode('utf-8')).hexdigest()
-                    if function_docstring_hash[obj] != hash:
-                        _fail(
-                            f"source/docstring for {objname}() modified; "
-                            f"recheck docstring and update hash to "
-                            f"{hash=}")
-                    continue
-
-                # Too complicated to check
                 if f"*{argname}" not in docstring:
-                    _warn(
-                        f"{objname} {argname} has positional arguments; "
-                        "docstring not checked")
+                    _fail(
+                        f"{objname} has undocumented, unbound positional "
+                        f"argument '{argname}'; "
+                        "use docstring signature instead")
                     continue
 
             # Check for keyword arguments (then look at code for parsing)
@@ -621,7 +596,7 @@ def _check_numpydoc_style(obj, doc):
     name = ".".join([obj.__module__.removeprefix("control."), obj.__name__])
 
     # Standard checks for all objects
-    summary = "".join(doc["Summary"])
+    summary = "\n".join(doc["Summary"])
     if len(doc["Summary"]) > 1:
         _warn(f"{name} summary is more than one line")
     if summary and summary[-1] != '.' and re.match(":$", summary) is None:
@@ -666,6 +641,55 @@ def _check_numpydoc_style(obj, doc):
         raise TypeError("unknown object type for {obj}")
 
 
+# Utility function to replace positional signature with docstring signature
+def _replace_var_positional_with_docstring(sig, doc):
+    # If no documentation is available, there is nothing we can do...
+    if doc is None:
+        return sig
+
+    # Check to see if the first argument is positional
+    parameter_items = iter(sig.parameters.items())
+    try:
+        argname, par = next(parameter_items)
+        if par.kind != inspect.Parameter.VAR_POSITIONAL or \
+           (signature := doc["Signature"]) == '':
+            return sig
+    except StopIteration:
+        return sig
+
+    # Try parsing the docstring signature
+    arg_list = []
+    while (1):
+        if (match_fcn := re.match(
+                r"^([\s]*\|[\s]*)*[\w]+\(", signature)) is None:
+            break
+        arg_idx = match_fcn.span(0)[1]
+        while (1):
+            match_arg = re.match(
+                r"[\s]*([\w]+)(,|,\[|\[,|\)|\]\))(,[\s]*|[\s]*[.]{3},[\s]*)*",
+                signature[arg_idx:])
+            if match_arg is None:
+                break
+            else:
+                arg_idx += match_arg.span(0)[1]
+                arg_list.append(match_arg.group(1))
+        signature = signature[arg_idx:]
+    if arg_list == []:
+        return sig
+
+    # Create the new parameter list
+    parameter_list = [
+        inspect.Parameter(arg, inspect.Parameter.POSITIONAL_ONLY)
+        for arg in arg_list]
+
+    # Add any remaining parameters that were in the original signature
+    for argname, par in parameter_items:
+        if argname not in arg_list:
+            parameter_list.append(par)
+
+    # Return the new signature
+    return sig.replace(parameters=parameter_list)
+
 # Utility function to warn with verbose output
 def _info(str, level):
     if verbose > level:
@@ -693,17 +717,17 @@ class simple_class:
 
 Failed = pytest.fail.Exception
 
-doc_header = simple_class.simple_function.__doc__
+doc_header = simple_class.simple_function.__doc__ + "\n"
 doc_parameters = "\nParameters\n----------\n"
-doc_arg1 = "\narg1 : int\nArgument 1.\n"
-doc_arg2 = "\narg2 : int\nArgument 2.\n"
-doc_arg2_nospace = "\narg2: int\nArgument 2.\n"
-doc_arg3 = "\narg3 : int\nNon-existent argument 1.\n"
-doc_opt1 = "\nopt1 : int\nKeyword argument 1.\n"
-doc_test = "\ntest : int\nInternal keyword argument 1.\n"
+doc_arg1 = "arg1 : int\n    Argument 1.\n"
+doc_arg2 = "arg2 : int\n    Argument 2.\n"
+doc_arg2_nospace = "arg2: int\n    Argument 2.\n"
+doc_arg3 = "arg3 : int\n    Non-existent argument 1.\n"
+doc_opt1 = "opt1 : int\n    Keyword argument 1.\n"
+doc_test = "test : int\n    Internal keyword argument 1.\n"
 doc_returns = "\nReturns\n-------\n"
-doc_ret = "\nout : int\n"
-doc_ret_nospace = "\nout: int\n"
+doc_ret = "out : int\n"
+doc_ret_nospace = "out: int\n"
 
 @pytest.mark.parametrize("docstring, exception, match", [
     (None, UserWarning, "missing docstring"),
@@ -721,8 +745,8 @@ doc_ret_nospace = "\nout: int\n"
      doc_returns + doc_ret, Failed, "'test' not documented"),
     (doc_header + doc_parameters + doc_arg1 + doc_arg2_nospace + doc_opt1 +
      doc_test + doc_returns + doc_ret_nospace, UserWarning, "missing space"),
-    (doc_header + doc_arg1 + doc_arg2_nospace + doc_opt1 + doc_test +
-     doc_returns + doc_ret_nospace, Failed, "missing Parameters section"),
+    (doc_header + doc_returns + doc_ret_nospace,
+     Failed, "missing Parameters section"),
     (doc_header, None, ""),
     (doc_header + "\n.. deprecated::", None, ""),
     (doc_header + "\n\n simple_function() is deprecated",
