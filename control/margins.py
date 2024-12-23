@@ -49,14 +49,14 @@ $Id$
 
 import math
 from warnings import warn
+
 import numpy as np
 import scipy as sp
-from . import xferfcn
-from .lti import evalfr
-from .iosys import issiso
-from . import frdata
-from . import freqplot
+
+from . import frdata, freqplot, xferfcn
 from .exception import ControlMIMONotImplemented
+from .iosys import issiso
+from .lti import evalfr
 
 __all__ = ['stability_margins', 'phase_crossover_frequencies', 'margin']
 

@@ -2,15 +2,17 @@
 # RMM, 10 Nov 2012
 
 import itertools
+import warnings
+
 import numpy as np
 import scipy as sp
 import scipy.optimize
-import warnings
-from .poly import PolyFamily
-from .systraj import SystemTrajectory
+
 from ..config import _process_legacy_keyword
 from ..nlsys import NonlinearIOSystem
 from ..timeresp import _check_convert_array
+from .poly import PolyFamily
+from .systraj import SystemTrajectory
 
 
 # Flat system class (for use as a base class)
@@ -244,9 +246,9 @@ def flatsys(*args, updfcn=None, outfcn=None, **kwargs):
         'u', 'y', 'x'.
 
     """
-    from .linflat import LinearFlatSystem
-    from ..statesp import StateSpace
     from ..iosys import _process_iosys_keywords
+    from ..statesp import StateSpace
+    from .linflat import LinearFlatSystem
 
     if len(args) == 1 and isinstance(args[0], StateSpace):
         # We were passed a linear system, so call linflat

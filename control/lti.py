@@ -4,11 +4,12 @@ The lti module contains the LTI parent class to the child classes StateSpace
 and TransferFunction.  It is designed for use in the python-control library.
 """
 
-import numpy as np
 import math
-
-from numpy import real, angle, abs
 from warnings import warn
+
+import numpy as np
+from numpy import abs, angle, real
+
 from . import config
 from .iosys import InputOutputSystem
 import control

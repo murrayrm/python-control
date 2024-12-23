@@ -1373,8 +1373,8 @@ def nlsys(updfcn, outfcn=None, **kwargs):
     ...     kincar, timepts, [10, 0.05 * np.sin(timepts)])
 
     """
-    from .statesp import StateSpace
     from .iosys import _extended_system_name
+    from .statesp import StateSpace
 
     if isinstance(updfcn, StateSpace):
         sys_ss = updfcn

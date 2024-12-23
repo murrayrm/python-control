@@ -1,18 +1,16 @@
 # canonical.py - functions for converting systems to canonical forms
 # RMM, 10 Nov 2012
 
+import numpy as np
+from numpy import empty, finfo, float64, hstack, iscomplex, poly, shape, \
+    transpose, vstack, zeros, zeros_like
+from numpy.linalg import eig, matrix_rank, solve
+from scipy.linalg import schur
+
 from .exception import ControlNotImplemented, ControlSlycot
 from .iosys import issiso
-from .statesp import StateSpace, _convert_to_statespace
 from .statefbk import ctrb, obsv
-
-import numpy as np
-
-from numpy import zeros, zeros_like, shape, poly, iscomplex, vstack, hstack, \
-    transpose, empty, finfo, float64
-from numpy.linalg import solve, matrix_rank, eig
-
-from scipy.linalg import schur
+from .statesp import StateSpace, _convert_to_statespace
 
 __all__ = ['canonical_form', 'reachable_form', 'observable_form', 'modal_form',
            'similarity_transform', 'bdschur']

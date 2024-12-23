@@ -16,19 +16,19 @@ __license__ = "BSD"
 __maintainer__ = "Richard Murray"
 __email__ = "murray@cds.caltech.edu"
 
-import numpy as np
-import scipy as sp
 from math import sqrt
 
-from .statesp import StateSpace
-from .lti import LTI
-from .iosys import InputOutputSystem, isctime, isdtime, _process_indices, \
-    _process_labels, _process_control_disturbance_indices
-from .nlsys import NonlinearIOSystem
-from .mateqn import care, dare, _check_shape
-from .statesp import StateSpace, _ssmatrix
-from .exception import ControlArgument, ControlNotImplemented
+import numpy as np
+import scipy as sp
+
 from .config import _process_legacy_keyword
+from .exception import ControlArgument, ControlNotImplemented
+from .iosys import InputOutputSystem, _process_control_disturbance_indices, \
+    _process_indices, _process_labels, isctime, isdtime
+from .lti import LTI
+from .mateqn import _check_shape, care, dare
+from .nlsys import NonlinearIOSystem
+from .statesp import StateSpace, _ssmatrix
 
 __all__ = ['lqe', 'dlqe', 'create_estimator_iosystem', 'white_noise',
            'correlation']
