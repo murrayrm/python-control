@@ -36,13 +36,13 @@
 # SUCH DAMAGE.
 
 import warnings
-import numpy as np
-from numpy import copy, eye, dot, finfo, inexact, atleast_2d
 
+import numpy as np
 import scipy as sp
+from numpy import atleast_2d, copy, dot, eye, finfo, inexact
 from scipy.linalg import eigvals, solve
 
-from .exception import ControlSlycot, ControlArgument, ControlDimension, \
+from .exception import ControlArgument, ControlDimension, ControlSlycot, \
     slycot_check
 from .statesp import _ssmatrix
 

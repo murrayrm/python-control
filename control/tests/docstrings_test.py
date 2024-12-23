@@ -15,12 +15,12 @@
 # desired (0 = only warnings/errors, 10 = everything).
 
 import inspect
+import re
 import sys
 import warnings
 
-import pytest
-import re
 import numpydoc.docscrape as npd
+import pytest
 
 import control
 import control.flatsys
@@ -40,11 +40,11 @@ function_skiplist = [
 function_docstring_hash = {
     control.append:                     '4b2e2e04fdba27076e331f96869cc2d0',
     control.describing_function_plot:   '38bb19bb5071b668595ff783f30b04df',
-    control.dlqe:                       '1aac6bbe96953f17e5adc45052845a13',
+    control.dlqe:                       '5c4b32bd18fb6247d4b0d0b91b321353',
     control.dlqr:                       '31b171350f28659d058315c46cd1c424',
     control.lqe:                        'd335642ab4976c48a154df52f4f12ef3',
     control.lqr:                        'e7a5e4767539a4e8d6a3b156ff83d34f',
-    control.margin:                     '8fba65a7fd087767f02eb883924c8f6b',
+    control.margin:                     '79ccd1ced7c5c179813abb2524848e99',
     control.parallel:                   'ac1176890daba0ed7b6ba5626abc2b08',
     control.series:                     'df069d2fe679b4451840c4a3bb031c0d',
     control.ss2tf:                      '9193113508a2d4d65591dee505edce66',

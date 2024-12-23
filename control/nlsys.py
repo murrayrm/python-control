@@ -27,8 +27,8 @@ import scipy as sp
 from . import config
 from .iosys import InputOutputSystem, _parse_spec, _process_iosys_keywords, \
     _process_signal_list, common_timebase, isctime, isdtime
-from .timeresp import _check_convert_array, _process_time_response, \
-    TimeResponseData, TimeResponseList
+from .timeresp import TimeResponseData, TimeResponseList, \
+    _check_convert_array, _process_time_response
 
 __all__ = ['NonlinearIOSystem', 'InterconnectedSystem', 'nlsys',
            'input_output_response', 'find_eqpt', 'linearize',
@@ -1298,8 +1298,8 @@ def nlsys(updfcn, outfcn=None, **kwargs):
     ...     kincar, timepts, [10, 0.05 * np.sin(timepts)])
 
     """
-    from .statesp import StateSpace
     from .iosys import _extended_system_name
+    from .statesp import StateSpace
 
     if isinstance(updfcn, StateSpace):
         sys_ss = updfcn
