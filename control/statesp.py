@@ -741,21 +741,23 @@ class StateSpace(NonlinearIOSystem, LTI):
         return _process_frequency_response(self, x, out, squeeze=squeeze)
 
     def slycot_laub(self, x):
-        """Evaluate system's transfer function at complex frequency
-        using Laub's method from Slycot.
+        """Laub's method to evaluate response at complex frequency.
 
-        Expects inputs and outputs to be formatted correctly. Use ``sys(x)``
-        for a more user-friendly interface.
+        Evaluate transfer function at complex frequency using Laub's
+        method from Slycot.  Expects inputs and outputs to be
+        formatted correctly. Use ``sys(x)`` for a more user-friendly
+        interface.
 
         Parameters
         ----------
         x : complex array_like or complex
-            Complex frequency
+            Complex frequency.
 
         Returns
         -------
         output : (number_outputs, number_inputs, len(x)) complex ndarray
-            Frequency response
+            Frequency response.
+
         """
         from slycot import tb05ad
 
@@ -998,7 +1000,7 @@ class StateSpace(NonlinearIOSystem, LTI):
         Parameters
         ----------
         other : LTI
-            The lower LTI system
+            The lower LTI system.
         ny : int, optional
             Dimension of (plant) measurement output.
         nu : int, optional
@@ -1126,9 +1128,9 @@ class StateSpace(NonlinearIOSystem, LTI):
         Returns
         -------
         out : list of list of :class:`scipy.signal.StateSpace`
-            continuous time (inheriting from :class:`scipy.signal.lti`)
+            Continuous time (inheriting from :class:`scipy.signal.lti`)
             or discrete time (inheriting from :class:`scipy.signal.dlti`)
-            SISO objects
+            SISO objects.
         """
         if strict and self.dt is None:
             raise ValueError("with strict=True, dt cannot be None")
@@ -1202,7 +1204,7 @@ class StateSpace(NonlinearIOSystem, LTI):
 
     def sample(self, Ts, method='zoh', alpha=None, prewarp_frequency=None,
                name=None, copy_names=True, **kwargs):
-        """Convert a continuous time system to discrete time
+        """Convert a continuous time system to discrete time.
 
         Creates a discrete-time system from a continuous-time system by
         sampling.  Multiple methods of conversion are supported.
@@ -1210,7 +1212,7 @@ class StateSpace(NonlinearIOSystem, LTI):
         Parameters
         ----------
         Ts : float
-            Sampling period
+            Sampling period.
         method :  {"gbt", "bilinear", "euler", "backward_diff", "zoh"}
             Which method to use:
 
@@ -1223,7 +1225,7 @@ class StateSpace(NonlinearIOSystem, LTI):
         alpha : float within [0, 1]
             The generalized bilinear transformation weighting parameter, which
             should only be specified with method="gbt", and is ignored
-            otherwise
+            otherwise.
         prewarp_frequency : float within [0, infinity)
             The frequency [rad/s] at which to match with the input continuous-
             time system's magnitude and phase (the gain=1 crossover frequency,
@@ -1244,7 +1246,7 @@ class StateSpace(NonlinearIOSystem, LTI):
         Returns
         -------
         sysd : StateSpace
-            Discrete-time system, with sampling rate Ts
+            Discrete-time system, with sampling rate Ts.
 
         Other Parameters
         ----------------
@@ -1290,7 +1292,7 @@ class StateSpace(NonlinearIOSystem, LTI):
         return StateSpace(sysd, **kwargs)
 
     def dcgain(self, warn_infinite=False):
-        """Return the zero-frequency gain
+        """Return the zero-frequency gain.
 
         The zero-frequency gain of a continuous-time state-space
         system is given by:
@@ -1347,11 +1349,11 @@ class StateSpace(NonlinearIOSystem, LTI):
         Parameters
         ----------
         t : float (ignored)
-            time
+            Time.
         x : array_like
-            current state
+            Current state.
         u : array_like (optional)
-            input, zero if omitted
+            Input, zero if omitted.
 
         Returns
         -------
@@ -1375,7 +1377,7 @@ class StateSpace(NonlinearIOSystem, LTI):
 
     # TODO: decide if we need this function (already in NonlinearIOSystem
     def output(self, t, x, u=None, params=None):
-        """Compute the output of the system
+        """Compute the output of the system.
 
         Given input `u` and state `x`, returns the output `y` of the
         state-space system:
@@ -1394,11 +1396,11 @@ class StateSpace(NonlinearIOSystem, LTI):
         Parameters
         ----------
         t : float (ignored)
-            time
+            Time.
         x : array_like
-            current state
+            Current state.
         u : array_like (optional)
-            input (zero if omitted)
+            Input (zero if omitted).
 
         Returns
         -------
@@ -1746,16 +1748,16 @@ def tf2ss(*args, **kwargs):
     Parameters
     ----------
     sys : LTI (StateSpace or TransferFunction)
-        A linear system
+        A linear system.
     num : array_like, or list of list of array_like
-        Polynomial coefficients of the numerator
+        Polynomial coefficients of the numerator.
     den : array_like, or list of list of array_like
-        Polynomial coefficients of the denominator
+        Polynomial coefficients of the denominator.
 
     Returns
     -------
     out : StateSpace
-        New linear system in state space form
+        New linear system in state space form.
 
     Other Parameters
     ----------------
@@ -1824,33 +1826,34 @@ def ssdata(sys):
     Parameters
     ----------
     sys : LTI (StateSpace, or TransferFunction)
-        LTI system whose data will be returned
+        LTI system whose data will be returned.
 
     Returns
     -------
-    (A, B, C, D): list of matrices
-        State space data for the system
+    A, B, C, D : list of matrices
+        State space data for the system.
     """
     ss = _convert_to_statespace(sys)
     return ss.A, ss.B, ss.C, ss.D
 
 
+# TODO: combine with sysnorm?
 def linfnorm(sys, tol=1e-10):
-    """L-infinity norm of a linear system
+    """L-infinity norm of a linear system.
 
     Parameters
     ----------
     sys : LTI (StateSpace or TransferFunction)
-      system to evalute L-infinity norm of
+      System to evalute L-infinity norm of.
     tol : real scalar
-      tolerance on norm estimate
+      Tolerance on norm estimate.
 
     Returns
     -------
     gpeak : non-negative scalar
-      L-infinity norm
+      L-infinity norm.
     fpeak : non-negative scalar
-      Frequency, in rad/s, at which gpeak occurs
+      Frequency, in rad/s, at which gpeak occurs.
 
     For stable systems, the L-infinity and H-infinity norms are equal;
     for unstable systems, the H-infinity norm is infinite, while the
