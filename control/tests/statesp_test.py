@@ -22,7 +22,7 @@ from control.statesp import StateSpace, _convert_to_statespace, tf2ss, \
     _statesp_defaults, _rss_generate, linfnorm, ss, rss, drss
 from control.xferfcn import TransferFunction, ss2tf, _tf_close_coeff
 
-from .conftest import editsdefaults, slycotonly
+from .conftest import editsdefaults, slycotonly, ignore_future_warning
 
 
 class TestStateSpace:
@@ -1529,6 +1529,7 @@ class TestLinfnorm:
         return ct.c2d(systype(*sysargs), dt), refgpeak, reffpeak
 
     @slycotonly
+    @pytest.mark.usefixtures('ignore_future_warning')
     def test_linfnorm_ct_siso(self, ct_siso):
         sys, refgpeak, reffpeak = ct_siso
         gpeak, fpeak = linfnorm(sys)
@@ -1536,6 +1537,7 @@ class TestLinfnorm:
         np.testing.assert_allclose(fpeak, reffpeak)
 
     @slycotonly
+    @pytest.mark.usefixtures('ignore_future_warning')
     def test_linfnorm_dt_siso(self, dt_siso):
         sys, refgpeak, reffpeak = dt_siso
         gpeak, fpeak = linfnorm(sys)
@@ -1544,6 +1546,7 @@ class TestLinfnorm:
         np.testing.assert_allclose(fpeak, reffpeak)
 
     @slycotonly
+    @pytest.mark.usefixtures('ignore_future_warning')
     def test_linfnorm_ct_mimo(self, ct_siso):
         siso, refgpeak, reffpeak = ct_siso
         sys = ct.append(siso, siso)
