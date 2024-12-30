@@ -1468,7 +1468,7 @@ def input_output_response(
         system signals are named, these names will be used as labels for the
         time response.
 
-    Other parameters
+    Other Parameters
     ----------------
     ignore_errors : bool, optional
         If ``False`` (default), errors during computation of the trajectory
