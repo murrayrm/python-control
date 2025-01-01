@@ -81,7 +81,7 @@ def ignore_future_warning():
         'ignore', message='.*deprecated', category=FutureWarning)
     yield
     warnings.resetwarnings()
-    
+
 
 # Allow pytest.mark.slow to mark slow tests (skip with pytest -m "not slow")
 def pytest_configure(config):
