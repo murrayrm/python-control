@@ -91,6 +91,10 @@ class TransferFunction(LTI):
     z : TransferFunction
         Represents the discrete time delay operator.
 
+    See Also
+    --------
+    tf, InputOutputSystem, FrequencyResponseData
+
     Notes
     -----
     The numerator and denominator polynomials are stored as 2D ndarrays
@@ -1658,10 +1662,7 @@ def tf(*args, **kwargs):
 
     See Also
     --------
-    TransferFunction
-    ss
-    ss2tf
-    tf2ss
+    TransferFunction, ss, ss2tf, tf2ss
 
     Notes
     -----
@@ -1869,9 +1870,7 @@ def ss2tf(*args, **kwargs):
 
     See Also
     --------
-    tf
-    ss
-    tf2ss
+    tf, ss, tf2ss
 
     Examples
     --------

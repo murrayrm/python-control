@@ -29,11 +29,9 @@ class LTI(InputOutputSystem):
     contains the number of inputs and outputs, and the timebase (dt) for the
     system.  This function is not generally called directly by the user.
 
-    When two LTI systems are combined, their timebases much match.  A system
-    with timebase None can be combined with a system having a specified
-    timebase, and the result will have the timebase of the latter system.
-
-    Note: dt processing has been moved to the InputOutputSystem class.
+    See Also
+    --------
+    InputOutputSystem, StateSpace, TransferFunction, FrequencyResponseData
 
     """
     def __init__(self, inputs=1, outputs=1, states=None, name=None, **kwargs):
@@ -263,9 +261,7 @@ def poles(sys):
 
     See Also
     --------
-    zeros
-    TransferFunction.poles
-    StateSpace.poles
+    zeros, StateSpace.poles, TransferFunction.poles
 
     """
 
@@ -288,9 +284,7 @@ def zeros(sys):
 
     See Also
     --------
-    poles
-    StateSpace.zeros
-    TransferFunction.zeros
+    poles, StateSpace.zeros, TransferFunction.zeros
 
     """
 
@@ -318,7 +312,7 @@ def damp(sys, doprint=True):
 
     See Also
     --------
-    pole
+    poles
 
     Notes
     -----
@@ -395,8 +389,7 @@ def evalfr(sys, x, squeeze=None):
 
     See Also
     --------
-    freqresp
-    bode
+    frequency_response, bode_plot
 
     Notes
     -----
@@ -478,8 +471,7 @@ def frequency_response(
 
     See Also
     --------
-    evalfr
-    bode_plot
+    evalfr, bode_plot
 
     Notes
     -----

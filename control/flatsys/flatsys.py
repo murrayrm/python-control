@@ -49,6 +49,10 @@ class FlatSystem(NonlinearIOSystem):
     name : string, optional
         System name.
 
+    See Also
+    --------
+    flatsys
+
     Notes
     -----
     The class must implement two functions:
