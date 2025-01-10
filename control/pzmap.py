@@ -85,7 +85,7 @@ class PoleZeroData:
     dt : None, True or float, optional
         System timebase (used for showing stability boundary).
     sort_loci : bool, optional
-        Set to `False` to turn off sorting of loci into unique branches.
+        Set to False to turn off sorting of loci into unique branches.
 
     """
     def __init__(
@@ -142,7 +142,7 @@ def pole_zero_map(sysdata):
     -------
     pzmap_data : PoleZeroMap
         Pole/zero map containing the poles and zeros of the system.  Use
-        `pzmap_data.plot()` or `pole_zero_plot(pzmap_data)` to plot the
+        ``pzmap_data.plot()`` or ``pole_zero_plot(pzmap_data)`` to plot the
         pole/zero map.
 
     """
@@ -162,8 +162,8 @@ def pole_zero_map(sysdata):
 
 
 # TODO: Implement more elegant cross-style axes. See:
-#    https://matplotlib.org/2.0.2/examples/axes_grid/demo_axisline_style.html
-#    https://matplotlib.org/2.0.2/examples/axes_grid/demo_curvelinear_grid.html
+#   https://matplotlib.org/2.0.2/examples/axes_grid/demo_axisline_style.html
+#   https://matplotlib.org/2.0.2/examples/axes_grid/demo_curvelinear_grid.html
 def pole_zero_plot(
         data, plot=None, grid=None, title=None, color=None, marker_size=None,
         marker_width=None, xlim=None, ylim=None, interactive=None, ax=None,
@@ -174,7 +174,7 @@ def pole_zero_plot(
     system is plotted.  When the root locus for a single system is plotted,
     clicking on a location on the root locus will mark the gain on all
     branches of the diagram and show the system gain and damping for the
-    given pole in the axes title.  Set to `False` to turn off this behavior.
+    given pole in the axes title.  Set to False to turn off this behavior.
 
     Parameters
     ----------
@@ -183,12 +183,13 @@ def pole_zero_plot(
         or root_locus_map() that are to be plotted.  If a list of systems
         is given, the poles and zeros of those systems will be plotted.
     grid : bool or str, optional
-        If `True` plot omega-damping grid, if `False` show imaginary axis
-        for continuous time systems, unit circle for discrete time systems.
-        If `empty`, do not draw any additonal lines.  Default value is set
-        by config.defaults['pzmap.grid'] or config.defaults['rlocus.grid'].
+        If True plot omega-damping grid, if False show imaginary
+        axis for continuous time systems, unit circle for discrete time
+        systems.  If 'empty', do not draw any additonal lines.  Default
+        value is set by `config.defaults['pzmap.grid']` or
+        `config.defaults['rlocus.grid']`.
     plot : bool, optional
-        (legacy) If `True` a graph is generated with Matplotlib,
+        (legacy) If True a graph is generated with Matplotlib,
         otherwise the poles and zeros are only computed and returned.
         If this argument is present, the legacy value of poles and
         zeros is returned.
@@ -200,7 +201,7 @@ def pole_zero_plot(
 
           * cplt.lines: Array of `matplotlib.lines.Line2D` objects
             for each set of markers in the plot. The shape of the array is
-            given by (`nsys`, 2) where `nsys` is the number of systems or
+            given by (nsys, 2) where nsys is the number of systems or
             responses passed to the function.  The second index specifies
             the pzmap object type:
 
@@ -237,7 +238,7 @@ def pole_zero_plot(
         system.
     legend_loc : int or str, optional
         Include a legend in the given location. Default is 'upper right',
-        with no legend for a single response.  Use `False` to suppress legend.
+        with no legend for a single response.  Use False to suppress legend.
     marker_color : str, optional
         Set the color of the markers used for poles and zeros.
     marker_size : int, optional
@@ -246,13 +247,13 @@ def pole_zero_plot(
         Set the line width of the markers used for poles and zeros.
     rcParams : dict
         Override the default parameters used for generating plots.
-        Default is set by config.defaults['ctrlplot.rcParams'].
+        Default is set by `config.defaults['ctrlplot.rcParams']`.
     scaling : str or list, optional
         Set the type of axis scaling.  Can be 'equal' (default), 'auto', or
         a list of the form [xmin, xmax, ymin, ymax].
     show_legend : bool, optional
-        Force legend to be shown if `True` or hidden if `False`.  If
-        `None`, then show legend when there is more than one line on the
+        Force legend to be shown if True or hidden if False.  If
+        None, then show legend when there is more than one line on the
         plot or `legend_loc` has been specified.
     title : str, optional
         Set the title of the plot.  Defaults to plot type and system name(s).
@@ -271,16 +272,16 @@ def pole_zero_plot(
 
     Pole/zero plots that use the continuous time omega-damping grid do not
     work with the `ax` keyword argument, due to the way that axes grids
-    are implemented.  The `grid` argument must be set to `False` or
-    `'empty'` when using the `ax` keyword argument.
+    are implemented.  The `grid` argument must be set to False or
+    'empty' when using the `ax` keyword argument.
 
     The limits of the pole/zero plot are set based on the location features
     in the plot, including the location of poles, zeros, and local maxima
     of root locus curves.  The locations of local maxima are expanded by a
-    buffer factor set by config.defaults['phaseplot.buffer_factor'] that is
+    buffer factor set by `config.defaults['phaseplot.buffer_factor']` that is
     applied to the locations of the local maxima.  The final axis limits
     are set to by the largest features in the plot multiplied by an
-    expansion factor set by config.defaults['phaseplot.expansion_factor'].
+    expansion factor set by `config.defaults['phaseplot.expansion_factor']`.
     The default value for the buffer factor is 1.05 (5% buffer around local
     maxima) and the default value for the expansion factor is 1.8 (80%
     increase in limits around the most distant features).
