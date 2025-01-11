@@ -32,7 +32,8 @@ from .lti import LTI
 from .statesp import StateSpace
 from .xferfcn import TransferFunction
 
-__all__ = ['pole_zero_map', 'pole_zero_plot', 'pzmap', 'PoleZeroData']
+__all__ = ['pole_zero_map', 'pole_zero_plot', 'pzmap', 'PoleZeroData',
+           'PoleZeroList']
 
 
 # Define default parameter values for this module
