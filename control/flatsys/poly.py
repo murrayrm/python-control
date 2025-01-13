@@ -12,7 +12,9 @@ powers of t: 1, t, t^2, ...
 
 import numpy as np
 from scipy.special import factorial
+
 from .basis import BasisFamily
+
 
 class PolyFamily(BasisFamily):
     r"""Polynomial basis functions.

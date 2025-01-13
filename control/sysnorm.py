@@ -5,10 +5,11 @@
 
 """Functions for computing system norms."""
 
-import numpy as np
-import scipy as sp
-import numpy.linalg as la
 import warnings
+
+import numpy as np
+import numpy.linalg as la
+import scipy as sp
 
 import control as ct
 

@@ -8,15 +8,16 @@ StateSpace and TransferFunction.
 """
 
 import math
+from typing import Callable
 from warnings import warn
 
 import numpy as np
 from numpy import abs, angle, real
 
+import control
+
 from . import config
 from .iosys import InputOutputSystem
-import control
-from typing import Callable
 
 __all__ = ['poles', 'zeros', 'damp', 'evalfr', 'frequency_response',
            'freqresp', 'dcgain', 'bandwidth', 'LTI']
@@ -216,7 +217,7 @@ class LTI(InputOutputSystem):
         # importing here prevents circular dependancy
         from control.passivity import ispassive
         return ispassive(self)
-    
+
     def feedback(self, other=1, sign=-1):
         raise NotImplementedError(f"feedback not implemented for base {self.__class__.__name__} objects")
 

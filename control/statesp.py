@@ -21,12 +21,14 @@ from warnings import warn
 import numpy as np
 import scipy as sp
 import scipy.linalg
-from numpy import any, array, asarray, concatenate, cos, delete, empty, \
-    exp, eye, isinf, ones, pad, sin, squeeze, zeros
+from numpy import any, array, asarray, concatenate, cos, delete, empty, exp, \
+    eye, isinf, ones, pad, sin, squeeze, zeros
 from numpy.linalg import LinAlgError, eigvals, matrix_rank, solve
 from numpy.random import rand, randn
 from scipy.signal import StateSpace as signalStateSpace
 from scipy.signal import cont2discrete
+
+import control
 
 from . import config
 from . import bdalg
@@ -37,7 +39,6 @@ from .iosys import InputOutputSystem, NamedSignal, _process_dt_keyword, \
     common_timebase, iosys_repr, isdtime, issiso
 from .lti import LTI, _process_frequency_response
 from .nlsys import InterconnectedSystem, NonlinearIOSystem
-import control
 
 try:
     from slycot import ab13dd
@@ -1496,7 +1497,7 @@ class StateSpace(NonlinearIOSystem, LTI):
                 raise ValueError("len(u) must be equal to number of inputs")
             return (self.C @ x).reshape((-1,)) \
                 + (self.D @ u).reshape((-1,))  # return as row vector
-        
+
     # convenience aliase, import needs to go over the submodule to avoid circular imports
     initial_response = control.timeresp.initial_response
 

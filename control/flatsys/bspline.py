@@ -10,8 +10,10 @@ with given orders and smoothness.
 """
 
 import numpy as np
-from .basis import BasisFamily
 from scipy.interpolate import BSpline, splev
+
+from .basis import BasisFamily
+
 
 class BSplineFamily(BasisFamily):
     """B-spline basis functions.

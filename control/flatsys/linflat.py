@@ -5,10 +5,11 @@
 
 """
 
-import numpy as np
 import control
-from .flatsys import FlatSystem
+import numpy as np
+
 from ..statesp import StateSpace
+from .flatsys import FlatSystem
 
 
 class LinearFlatSystem(FlatSystem, StateSpace):

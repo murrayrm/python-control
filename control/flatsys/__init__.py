@@ -29,14 +29,11 @@ The docstring examples assume that the following import commands::
 
 # Basis function families
 from .basis import BasisFamily
-from .poly import PolyFamily
 from .bezier import BezierFamily
 from .bspline import BSplineFamily
-
+# Package functions
+from .flatsys import FlatSystem, flatsys, point_to_point, solve_flat_ocp
+from .linflat import LinearFlatSystem
+from .poly import PolyFamily
 # Classes
 from .systraj import SystemTrajectory
-from .flatsys import FlatSystem, flatsys
-from .linflat import LinearFlatSystem
-
-# Package functions
-from .flatsys import point_to_point, solve_flat_ocp
