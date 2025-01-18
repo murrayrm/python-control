@@ -24,11 +24,12 @@ __all__ = ['poles', 'zeros', 'damp', 'evalfr', 'frequency_response',
 
 
 class LTI(InputOutputSystem):
-    """Parent class for linear time-invariant (LTI) system objects.
+    """Parent class for linear time-invariant system objects.
 
-    LTI is the parent to the StateSpace and TransferFunction child classes. It
-    contains the number of inputs and outputs, and the timebase (dt) for the
-    system.  This function is not generally called directly by the user.
+    LTI is the parent to the `StateSpace` and `TransferFunction` child
+    classes. It contains the number of inputs and outputs, and the timebase
+    (dt) for the system.  This class is not generally accessed directly by
+    the user.
 
     See Also
     --------
@@ -63,18 +64,29 @@ class LTI(InputOutputSystem):
         return wn, zeta, poles
 
     def feedback(self, other=1, sign=-1):
-        """Feedback interconnection between two LTI objects."""
+        """Feedback interconnection between two input/output systems.
+
+        Parameters
+        ----------
+        other : `InputOutputSystem`
+            System in the feedack path.
+
+        sign : float, optional
+            Gain to use in feedback path.  Defaults to -1.
+
+        """
         # Implemented in subclasses, but documented here
         return NotImplemented
 
     def frequency_response(self, omega=None, squeeze=None):
         """Evaluate LTI system response at an array of frequencies.
 
-        For continuous time systems, computes the frequency response as
+        For continuous-time systems with transfer function G, computes
+        the frequency response as
 
              G(j*omega) = mag * exp(j*phase)
 
-        For discrete time systems, the response is evaluated around the
+        For discrete-time systems, the response is evaluated around the
         unit circle such that
 
              G(exp(j*omega*dt)) = mag * exp(j*phase).
@@ -173,9 +185,10 @@ class LTI(InputOutputSystem):
         Raises
         ------
         TypeError
-            if 'sys' is not an SISO LTI instance
+            If `sys` is not an SISO LTI instance.
         ValueError
-            if 'dbdrop' is not a negative scalar
+            If `dbdrop` is not a negative scalar.
+
         """
         # check if system is SISO and dbdrop is a negative scalar
         if not self.issiso():
@@ -214,12 +227,14 @@ class LTI(InputOutputSystem):
                 raise Exception(result.message)
 
     def ispassive(self):
+        r"""Indicate if a linear time invariant (LTI) system is passive.
+
+        See `ispassive` for details.
+
+        """
         # importing here prevents circular dependancy
         from control.passivity import ispassive
         return ispassive(self)
-
-    def feedback(self, other=1, sign=-1):
-        raise NotImplementedError(f"feedback not implemented for base {self.__class__.__name__} objects")
 
     # convenience aliases
     # most function are only forward declaraed and patched in the __init__.py to avoid circular imports
@@ -253,7 +268,7 @@ def poles(sys):
 
     Parameters
     ----------
-    sys : StateSpace or TransferFunction
+    sys : `StateSpace` or `TransferFunction`
         Linear system.
 
     Returns
@@ -276,7 +291,7 @@ def zeros(sys):
 
     Parameters
     ----------
-    sys : StateSpace or TransferFunction
+    sys : `StateSpace` or `TransferFunction`
         Linear system.
 
     Returns
@@ -298,7 +313,7 @@ def damp(sys, doprint=True):
 
     Parameters
     ----------
-    sys : LTI (StateSpace or TransferFunction)
+    sys : `StateSpace` or `TransferFunction`
         A linear system object.
     doprint : bool (optional)
         If True, print table with values.
@@ -369,7 +384,7 @@ def evalfr(sys, x, squeeze=None):
 
     Parameters
     ----------
-    sys : StateSpace or TransferFunction
+    sys : `StateSpace` or `TransferFunction`
         Linear system.
     x : complex scalar or 1D array_like
         Complex frequency(s).
@@ -535,7 +550,7 @@ def frequency_response(
         else:
             omega_sys = omega_syslist.copy()    # use common omega vector
 
-            # Add the Nyquist frequency for discrete time systems
+            # Add the Nyquist frequency for discrete-time systems
             if sys_.isdtime(strict=True):
                 nyquistfrq = math.pi / sys_.dt
                 if not omega_range_given:
@@ -594,7 +609,7 @@ def bandwidth(sys, dbdrop=-3):
 
     Parameters
     ----------
-    sys : StateSpace or TransferFunction
+    sys : `StateSpace` or `TransferFunction`
         Linear system for which the bandwidth should be computed.
     dbdrop : float, optional
         By how much the gain drop in dB (default = -3) that defines the
@@ -610,9 +625,9 @@ def bandwidth(sys, dbdrop=-3):
     Raises
     ------
     TypeError
-        if 'sys' is not an SISO LTI instance
+        If `sys` is not an SISO LTI instance.
     ValueError
-        if 'dbdrop' is not a negative scalar
+        If `dbdrop` is not a negative scalar.
 
     Examples
     --------

@@ -125,7 +125,7 @@ def place_varga(A, B, p, dtime=False, alpha=None):
     p : 1D array_like
         Desired eigenvalue locations.
     dtime : bool, optional
-        False (default) for continuous time pole placement or True
+        False (default) for continuous-time pole placement or True
         for discrete time.
     alpha : float, optional
         If `dtime` is false then place_varga will leave the eigenvalues with
@@ -288,7 +288,7 @@ def lqr(*args, **kwargs):
     ----------
     A, B : 2D array_like
         Dynamics and input matrices.
-    sys : LTI StateSpace system
+    sys : LTI `StateSpace` system
         Linear system.
     Q, R : 2D array
         State and input weight matrices.
@@ -324,7 +324,7 @@ def lqr(*args, **kwargs):
     -----
     If the first argument is an LTI object, then this object will be used
     to define the dynamics and input matrices.  Furthermore, if the LTI
-    object corresponds to a discrete time system, the `dlqr` function
+    object corresponds to a discrete-time system, the `dlqr` function
     will be called.
 
     Examples
@@ -337,7 +337,7 @@ def lqr(*args, **kwargs):
     # Process the arguments and figure out what inputs we received
     #
 
-    # If we were passed a discrete time system as the first arg, use dlqr()
+    # If we were passed a discrete-time system as the first arg, use dlqr()
     if isinstance(args[0], LTI) and isdtime(args[0], strict=True):
         # Call dlqr
         return dlqr(*args, **kwargs)
@@ -592,7 +592,7 @@ def create_statefbk_iosystem(
 
     Parameters
     ----------
-    sys : NonlinearIOSystem
+    sys : `NonlinearIOSystem`
         The I/O system that represents the process dynamics.  If no estimator
         is given, the output of this system should represent the full state.
 
@@ -630,7 +630,7 @@ def create_statefbk_iosystem(
         multiplied by the current and desired state to generate the error
         for the internal integrator states of the control law.
 
-    estimator : NonlinearIOSystem, optional
+    estimator : `NonlinearIOSystem`, optional
         If an estimator is provided, use the states of the estimator as
         the system inputs for the controller.
 
@@ -655,14 +655,14 @@ def create_statefbk_iosystem(
     controller_type : 'linear' or 'nonlinear', optional
         Set the type of controller to create. The default for a linear gain
         is a linear controller implementing the LQR regulator. If the type
-        is 'nonlinear', a NonlinearIOSystem is created instead, with
+        is 'nonlinear', a `NonlinearIOSystem` is created instead, with
         the gain `K` as a parameter (allowing modifications of the gain at
         runtime). If the gain parameter is a tuple, then a nonlinear,
         gain-scheduled controller is created.
 
     Returns
     -------
-    ctrl : NonlinearIOSystem
+    ctrl : `NonlinearIOSystem`
         Input/output system representing the controller.  For the 'trajgen'
         design pattern (default), this system takes as inputs the desired
         state `x_d`, the desired input `u_d`, and either the system state
@@ -677,7 +677,7 @@ def create_statefbk_iosystem(
         and integral) are evaluated using the scheduling variables
         specified by `gainsched_indices`.
 
-    clsys : NonlinearIOSystem
+    clsys : `NonlinearIOSystem`
         Input/output system representing the closed loop system.  This
         system takes as inputs the desired trajectory (x_d, u_d) and
         outputs the system state `x` and the applied input `u`
@@ -716,7 +716,7 @@ def create_statefbk_iosystem(
         as the original system.
 
     name : string, optional
-        System name. If unspecified, a generic name <sys[id]> is generated
+        System name. If unspecified, a generic name 'sys[id]' is generated
         with a unique integer id.
 
     params : dict, optional
@@ -1141,7 +1141,7 @@ def gram(sys, type):
 
     Parameters
     ----------
-    sys : StateSpace
+    sys : `StateSpace`
         System description.
     type : String
         Type of desired computation.  `type` is either 'c' (controllability)
@@ -1156,13 +1156,13 @@ def gram(sys, type):
     Raises
     ------
     ValueError
-        * if system is not instance of StateSpace class
-        * if `type` is not 'c', 'o', 'cf' or 'of'
-        * if system is unstable (sys.A has eigenvalues not in left half plane)
+        * If system is not instance of `StateSpace` class, or
+        * if `type` is not 'c', 'o', 'cf' or 'of', or
+        * if system is unstable (sys.A has eigenvalues not in left half plane).
 
     ControlSlycot
-        if slycot routine sb03md cannot be found
-        if slycot routine sb03od cannot be found
+        If slycot routine sb03md cannot be found or
+        if slycot routine sb03od cannot be found.
 
     Examples
     --------

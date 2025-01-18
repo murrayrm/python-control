@@ -59,7 +59,7 @@ class FlatSystem(NonlinearIOSystem):
     ``zflag = flatsys.foward(x, u, params)``
 
         This function computes the flag (derivatives) of the flat output.
-        The inputs to this function are the state 'x' and inputs 'u' (both
+        The inputs to this function are the state `x` and inputs `u` (both
         1D arrays).  The output should be a 2D array with the first
         dimension equal to the number of system inputs and the second
         dimension of the length required to represent the full system
@@ -75,8 +75,10 @@ class FlatSystem(NonlinearIOSystem):
         `x` and inputs `u` (both 1D arrays).
 
     A flat system is also an input/output system supporting simulation,
-    composition, and linearization.  If the update and output methods are
-    given, they are used in place of the flat coordinates.
+    composition, and linearization.  In the current implementation, the
+    update function must be given explicitly, but the output function
+    defaults to the flat outputs.  If the output method is given, it is
+    used in place of the flat outputs.
 
     """
     def __init__(self,
@@ -110,7 +112,6 @@ class FlatSystem(NonlinearIOSystem):
             + f"Reverse: {self.reverse}"
 
     def forward(self, x, u, params=None):
-
         """Compute the flat flag given the states and input.
 
         Given the states and inputs for a system, compute the flat
@@ -192,7 +193,7 @@ def flatsys(*args, updfcn=None, outfcn=None, **kwargs):
 
     ``fs.flatsys(linsys)``
 
-        Create a flat system from a linear (StateSpace) system.
+        Create a flat system from a linear (`StateSpace`) system.
 
     Parameters
     ----------

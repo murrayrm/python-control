@@ -1215,7 +1215,7 @@ class TestXferFcn:
 
     @slycotonly
     def test_printing_mimo(self):
-        """Print MIMO, continuous time"""
+        """Print MIMO, continuous-time"""
         sys = ss2tf(rss(4, 2, 3))
         assert isinstance(str(sys), str)
         assert isinstance(sys._repr_html_(), str)

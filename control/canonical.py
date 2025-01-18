@@ -25,7 +25,7 @@ def canonical_form(xsys, form='reachable'):
 
     Parameters
     ----------
-    xsys : StateSpace object
+    xsys : `StateSpace` object
         System to be transformed, with state 'x'.
     form : str
         Canonical form for transformation.  Chosen from:
@@ -35,7 +35,7 @@ def canonical_form(xsys, form='reachable'):
 
     Returns
     -------
-    zsys : StateSpace object
+    zsys : `StateSpace` object
         System in desired canonical form, with state 'z'.
     T : (M, M) real ndarray
         Coordinate transformation matrix, z = T * x.
@@ -77,12 +77,12 @@ def reachable_form(xsys):
 
     Parameters
     ----------
-    xsys : StateSpace object
+    xsys : `StateSpace` object
         System to be transformed, with state `x`.
 
     Returns
     -------
-    zsys : StateSpace object
+    zsys : `StateSpace` object
         System in reachable canonical form, with state `z`.
     T : (M, M) real ndarray
         Coordinate transformation: z = T * x.
@@ -142,12 +142,12 @@ def observable_form(xsys):
 
     Parameters
     ----------
-    xsys : StateSpace object
+    xsys : `StateSpace` object
         System to be transformed, with state `x`.
 
     Returns
     -------
-    zsys : StateSpace object
+    zsys : `StateSpace` object
         System in observable canonical form, with state `z`.
     T : (M, M) real ndarray
         Coordinate transformation: z = T * x.
@@ -203,7 +203,7 @@ def similarity_transform(xsys, T, timescale=1, inverse=False):
 
     Parameters
     ----------
-    xsys : StateSpace object
+    xsys : `StateSpace` object
         System to transform.
     T : (M, M) array_like
         The matrix `T` defines the new set of coordinates z = T x.
@@ -215,7 +215,7 @@ def similarity_transform(xsys, T, timescale=1, inverse=False):
 
     Returns
     -------
-    zsys : StateSpace object
+    zsys : `StateSpace` object
         System in transformed coordinates, with state 'z'.
 
     See Also
@@ -497,7 +497,7 @@ def modal_form(xsys, condmax=None, sort=False):
 
     Parameters
     ----------
-    xsys : StateSpace object
+    xsys : `StateSpace` object
         System to be transformed, with state x.
     condmax : None or float, optional
         An upper bound on individual transformations.  If None, use
@@ -508,9 +508,9 @@ def modal_form(xsys, condmax=None, sort=False):
 
     Returns
     -------
-    zsys : StateSpace object
+    zsys : `StateSpace` object
         System in modal canonical form, with state z.
-    T : (M, M) ndarray
+    T : (M, M) array
         Coordinate transformation: z = T * x.
 
     Examples
