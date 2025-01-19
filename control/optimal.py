@@ -795,10 +795,9 @@ class OptimalControlProblem():
         print_summary : bool, optional
             If True (default), print a short summary of the computation.
 
-
         Returns
         -------
-        res : OptimalControlResult
+        res : `OptimalControlResult`
             Bundle object with the results of the optimal control problem.
         res.success : bool
             Boolean flag indicating whether the optimization was successful.
@@ -810,7 +809,7 @@ class OptimalControlProblem():
             If the system is not SISO or squeeze is False, the array
             is 2D (indexed by the output number and time).
         res.states : array
-            Time evolution of the state vector (if return_states=True).
+            Time evolution of the state vector.
 
         """
         # Allow 'return_x` as a synonym for 'return_states'
@@ -1123,23 +1122,19 @@ def solve_ocp(
 
     Returns
     -------
-    res : OptimalControlResult
+    res : `OptimalControlResult`
         Bundle object with the results of the optimal control problem.
-
     res.success : bool
         Boolean flag indicating whether the optimization was successful.
-
     res.time : array
         Time values of the input.
-
     res.inputs : array
         Optimal inputs for the system.  If the system is SISO and squeeze is
         not True, the array is 1D (indexed by time).  If the system is not
         SISO or squeeze is False, the array is 2D (indexed by the output
         number and time).
-
     res.states : array
-        Time evolution of the state vector (if return_states=True).
+        Time evolution of the state vector.
 
     Other Parameters
     ----------------
@@ -1755,7 +1750,7 @@ class OptimalEstimationProblem():
 
         Returns
         -------
-        res : OptimalEstimationResult
+        res : `OptimalEstimationResult`
             Bundle object with the results of the optimal estimation problem.
         res.success : bool
             Boolean flag indicating whether the optimization was successful.

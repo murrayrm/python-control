@@ -419,7 +419,7 @@ class StateSpace(NonlinearIOSystem, LTI):
 
         Returns
         -------
-        s : string
+        s : str
             HTML/LaTeX representation of model, or None if either matrix
             dimension is greater than statesp.latex_maxsize.
 
@@ -445,7 +445,9 @@ class StateSpace(NonlinearIOSystem, LTI):
 
         Returns
         -------
-        s : string with LaTeX representation of model
+        s : str
+            LaTeX representation of model.
+
         """
         # Apply NumPy formatting
         with np.printoptions(threshold=sys.maxsize):
@@ -477,7 +479,9 @@ class StateSpace(NonlinearIOSystem, LTI):
 
         Returns
         -------
-        s : string with LaTeX representation of model
+        s : str
+            LaTeX representation of model.
+
         """
         if self.nstates == 0:
             return self._latex_partitioned_stateless()
@@ -518,7 +522,9 @@ class StateSpace(NonlinearIOSystem, LTI):
 
         Returns
         -------
-        s : string with LaTeX representation of model
+        s : str
+            LaTeX representation of model.
+
         """
         lines = [
             r'$$',
@@ -1239,6 +1245,7 @@ class StateSpace(NonlinearIOSystem, LTI):
             Continuous time (inheriting from `scipy.signal.lti`)
             or discrete time (inheriting from `scipy.signal.dlti`)
             SISO objects.
+
         """
         if strict and self.dt is None:
             raise ValueError("with strict=True, dt cannot be None")
@@ -1369,7 +1376,7 @@ class StateSpace(NonlinearIOSystem, LTI):
         Returns
         -------
         sysd : `StateSpace`
-            Discrete-time system, with sampling rate Ts.
+            Discrete-time system, with sampling rate `Ts`.
 
         Other Parameters
         ----------------
@@ -1529,6 +1536,7 @@ class StateSpace(NonlinearIOSystem, LTI):
         Returns
         -------
         y : ndarray
+
         """
         if params is not None:
             warn("params keyword ignored for StateSpace object")
@@ -1989,8 +1997,9 @@ def ssdata(sys):
 
     Returns
     -------
-    A, B, C, D : list of matrices
+    A, B, C, D : ndarray
         State space data for the system.
+
     """
     ss = _convert_to_statespace(sys)
     return ss.A, ss.B, ss.C, ss.D
@@ -2014,14 +2023,16 @@ def linfnorm(sys, tol=1e-10):
     fpeak : non-negative scalar
       Frequency, in rad/s, at which gpeak occurs.
 
+    See Also
+    --------
+    slycot.ab13dd
+
+    Notes
+    -----
     For stable systems, the L-infinity and H-infinity norms are equal;
     for unstable systems, the H-infinity norm is infinite, while the
     L-infinity norm is finite if the system has no poles on the
     imaginary axis.
-
-    See Also
-    --------
-    slycot.ab13dd
 
     """
     if ab13dd is None:
@@ -2192,7 +2203,7 @@ def summing_junction(
 
     Returns
     -------
-    sys : static `StateSpace`
+    sys : `StateSpace`
         Linear input/output system object with no states and only a direct
         term that implements the summing junction.
 
