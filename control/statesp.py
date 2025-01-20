@@ -1746,7 +1746,7 @@ def ss(*args, **kwargs):
 
     See Also
     --------
-    tf, ss2tf, tf2ss, zpk
+    StateSpace, nlsys, tf, ss2tf, tf2ss, zpk
 
     Notes
     -----
