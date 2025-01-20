@@ -904,14 +904,25 @@ class TransferFunction(LTI):
         num = _create_poly_array((self.noutputs, self.ninputs))
         den = _create_poly_array((self.noutputs, self.ninputs))
 
+        # Remove small coefficients
+        num_array, den_array = self.num_array.copy(), self.den_array.copy()
+        max_coeff = 0
+        for i, j in product(range(self.noutputs), range(self.ninputs)):
+            max_coeff = max(max_coeff, np.max(np.abs(num_array[i, j])).item())
+            max_coeff = max(max_coeff, np.max(np.abs(den_array[i, j])).item())
+        threshold = tol or float_info.epsilon * max_coeff
+        for i, j in product(range(self.noutputs), range(self.ninputs)):
+            num_array[i, j][np.abs(num_array[i, j]) < threshold] = 0
+            den_array[i, j][np.abs(den_array[i, j]) < threshold] = 0
+
         for i in range(self.noutputs):
             for j in range(self.ninputs):
 
                 # split up in zeros, poles and gain
                 newzeros = []
-                zeros = roots(self.num_array[i, j])
-                poles = roots(self.den_array[i, j])
-                gain = self.num_array[i, j][0] / self.den_array[i, j][0]
+                zeros = roots(num_array[i, j])
+                poles = roots(den_array[i, j])
+                gain = num_array[i, j][0] / den_array[i, j][0]
 
                 # check all zeros
                 for z in zeros:
