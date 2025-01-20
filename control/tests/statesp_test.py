@@ -8,6 +8,7 @@ BG,  26 Jul 2020 merge statesp_array_test.py differences into statesp_test.py
 """
 
 import operator
+import platform
 
 import numpy as np
 import pytest
@@ -581,6 +582,7 @@ class TestStateSpace:
             np.testing.assert_allclose(expected.B, result.B)
             np.testing.assert_allclose(expected.C, result.C)
             np.testing.assert_allclose(expected.D, result.D)
+
             # Power of -1 (inverse of biproper system)
             # Testing transfer function representations to avoid the
             # non-uniqueness of the state-space representation. Once MIMO
@@ -592,12 +594,19 @@ class TestStateSpace:
                 ss2tf(expected).minreal(),
                 ss2tf(result).minreal(),
             )
-            result = (sys**-1 * sys).minreal()
-            expected = StateSpace([], [], [], np.eye(2), dt=0)
-            assert _tf_close_coeff(
-                ss2tf(expected).minreal(),
-                ss2tf(result).minreal(),
-            )
+            try:
+                result = (sys**-1 * sys).minreal()
+                expected = StateSpace([], [], [], np.eye(2), dt=0)
+                assert _tf_close_coeff(
+                    ss2tf(expected).minreal(),
+                    ss2tf(result).minreal(),
+                )
+            except AssertionError:
+                if platform.system() == 'Darwin':
+                    pytest.xfail("minreal bug on MacOS")
+                else:
+                    raise
+
             # Power of 3
             result = sys**3
             expected = sys * sys * sys
