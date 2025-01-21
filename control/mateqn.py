@@ -607,7 +607,9 @@ def _slycot_or_scipy(method):
 
 # Utility function to check matrix dimensions
 def _check_shape(name, M, n, m, square=False, symmetric=False):
-    if square and M.shape[0] != M.shape[1]:
+    M = np.atleast_2d(M)
+
+    if (square or symmetric) and M.shape[0] != M.shape[1]:
         raise ControlDimension("%s must be a square matrix" % name)
 
     if symmetric and not _is_symmetric(M):
@@ -615,6 +617,8 @@ def _check_shape(name, M, n, m, square=False, symmetric=False):
 
     if M.shape[0] != n or M.shape[1] != m:
         raise ControlDimension("Incompatible dimensions of %s matrix" % name)
+
+    return M
 
 
 # Utility function to check if a matrix is symmetric

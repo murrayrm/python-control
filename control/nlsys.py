@@ -874,7 +874,7 @@ class InterconnectedSystem(NonlinearIOSystem):
                 cxn, width=78, initial_indent=" * ",
                 subsequent_indent="     ")) + "\n"
 
-        out += f"\nOutputs:\n"
+        out += f"\nOutputs:"
         for i in range(len(self.output_labels)):
             first = True
             cxn = f"{self.output_labels[i]} <- "
@@ -884,9 +884,9 @@ class InterconnectedSystem(NonlinearIOSystem):
                         cxn += cxn_string(
                             output_list[j], self.output_map[i, j], first)
                         first = False
-                out += "\n".join(textwrap.wrap(
+                out += "\n" + "\n".join(textwrap.wrap(
                     cxn, width=78, initial_indent=" * ",
-                    subsequent_indent="     ")) + "\n"
+                    subsequent_indent="     "))
 
         return out
 
