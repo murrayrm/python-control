@@ -1165,10 +1165,10 @@ class TransferFunction(LTI):
             Method to use for sampling:
 
             * 'gbt': generalized bilinear transformation
-            * 'backward_diff': Backwards differencing ('gbt' with alpha=1.0)
+            * 'backward_diff': Backwards difference ('gbt' with alpha=1.0)
             * 'bilinear' (or 'tustin'): Tustin's approximation ('gbt' with
               alpha=0.5)
-            * 'euler': Euler (or forward differencing) method ('gbt' with
+            * 'euler': Euler (or forward difference) method ('gbt' with
               alpha=0)
             * 'matched': pole-zero match method
             * 'zoh': zero-order hold (default)
@@ -2042,14 +2042,14 @@ def _tf_close_coeff(tf_a, tf_b, rtol=1e-5, atol=1e-8):
     Returns
     -------
     bool
-        True if transfer function cofficients are all close.
+        True if transfer function coefficients are all close.
     """
     # Check number of outputs and inputs
     if tf_a.noutputs != tf_b.noutputs:
         return False
     if tf_a.ninputs != tf_b.ninputs:
         return False
-    # Check timestep
+    # Check timebase
     if tf_a.dt != tf_b.dt:
         return False
     # Check coefficient arrays

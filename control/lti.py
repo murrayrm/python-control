@@ -36,7 +36,7 @@ class LTI(InputOutputSystem):
 
     """
     def __init__(self, inputs=1, outputs=1, states=None, name=None, **kwargs):
-        """Assign the LTI object's numbers of inputs and ouputs."""
+        """Assign the LTI object's numbers of inputs and outputs."""
         super().__init__(
             name=name, inputs=inputs, outputs=outputs, states=states, **kwargs)
 
@@ -85,7 +85,7 @@ class LTI(InputOutputSystem):
         raise NotImplementedError("not implemented in subclass")
 
     def damp(self):
-        '''Natural frequency, damping ratio of system poles.
+        """Natural frequency, damping ratio of system poles.
 
         Returns
         -------
@@ -95,7 +95,7 @@ class LTI(InputOutputSystem):
             Damping ratio for each system pole.
         poles : array
             System pole locations.
-        '''
+        """
         poles = self.poles()
 
         if self.isdtime(strict=True):
@@ -112,14 +112,13 @@ class LTI(InputOutputSystem):
         Parameters
         ----------
         other : `InputOutputSystem`
-            System in the feedack path.
+            System in the feedback path.
 
         sign : float, optional
             Gain to use in feedback path.  Defaults to -1.
 
         """
-        # Implemented in subclasses, but documented here
-        return NotImplemented
+        raise NotImplementedError("feedback not implemented in subclass")
 
     def frequency_response(self, omega=None, squeeze=None):
         """Evaluate LTI system response at an array of frequencies.
@@ -166,7 +165,7 @@ class LTI(InputOutputSystem):
         """Evaluate bandwidth of an LTI system for a given dB drop.
 
         Evaluate the first frequency that the response magnitude is lower than
-        DC gain by dbdrop dB.
+        DC gain by `dbdrop` dB.
 
         Parameters
         ----------
@@ -178,7 +177,7 @@ class LTI(InputOutputSystem):
         -------
         bandwidth : ndarray
             The first frequency (rad/time-unit) where the gain drops below
-            dbdrop of the dc gain of the system, or nan if the system has
+            `dbdrop` of the dc gain of the system, or nan if the system has
             infinite dc gain, inf if the gain does not drop for all frequency.
 
         Raises
@@ -231,7 +230,7 @@ class LTI(InputOutputSystem):
         See `ispassive` for details.
 
         """
-        # importing here prevents circular dependancy
+        # importing here prevents circular dependency
         from control.passivity import ispassive
         return ispassive(self)
 
@@ -676,7 +675,7 @@ def dcgain(sys):
 
 
 def bandwidth(sys, dbdrop=-3):
-    """Find first freqency where the gain drop by dbdrop of the system.
+    """Find first frequency where gain drops by 3 dB.
 
     Parameters
     ----------
@@ -689,9 +688,9 @@ def bandwidth(sys, dbdrop=-3):
     Returns
     -------
     bandwidth : ndarray
-        The first frequency (rad/time-unit) where the gain drops below dbdrop
-        of the dc gain of the system, or nan if the system has infinite dc
-        gain, inf if the gain does not drop for all frequency.
+        The first frequency where the gain drops below `dbdrop` of the zero
+        frequency (DC) gain of the system, or nan if the system has infinite
+        zero frequency gain, inf if the gain does not drop for any frequency.
 
     Raises
     ------

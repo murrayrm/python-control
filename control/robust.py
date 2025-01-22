@@ -35,7 +35,7 @@ def h2syn(P, nmeas, ncon):
     Raises
     ------
     ImportError
-        If slycot routine sb10hd is not loaded.
+        If Slycot routine sb10hd is not loaded.
 
     See Also
     --------
@@ -43,7 +43,7 @@ def h2syn(P, nmeas, ncon):
 
     Examples
     --------
-    >>> # Unstable first order SISI system
+    >>> # Unstable first order SISO system
     >>> G = ct.tf([1], [1, -1], inputs=['u'], outputs=['y'])
     >>> all(G.poles() < 0)  # Is G stable?
     False
@@ -65,7 +65,7 @@ def h2syn(P, nmeas, ncon):
     """
     # Check for ss system object, need a utility for this?
 
-    # TODO: Check for continous or discrete, only continuous supported right now
+    # TODO: Check for continuous/discrete, only continuous supported right now
     # if isCont():
     #    dico = 'C'
     # elif isDisc():
@@ -131,7 +131,7 @@ def hinfsyn(P, nmeas, ncon):
 
     Examples
     --------
-    >>> # Unstable first order SISI system
+    >>> # Unstable first order SISO system
     >>> G = ct.tf([1], [1,-1], inputs=['u'], outputs=['y'])
     >>> all(G.poles() < 0)
     False
@@ -153,7 +153,7 @@ def hinfsyn(P, nmeas, ncon):
 
     # Check for ss system object, need a utility for this?
 
-    # TODO: Check for continous or discrete, only continuous supported right now
+    # TODO: Check for continuous/discrete, only continuous supported right now
     # if isCont():
     #    dico = 'C'
     # elif isDisc():
