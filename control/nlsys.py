@@ -76,7 +76,7 @@ class NonlinearIOSystem(InputOutputSystem):
         following values:
 
         * `dt` = 0: continuous-time system (default)
-        * `dt` > 0: discrete-time system with sampling period 'dt'
+        * `dt` > 0: discrete-time system with sampling period `dt`
         * `dt` = True: discrete time with unspecified sampling period
         * `dt` = None: no timebase specified
 
@@ -1389,7 +1389,7 @@ def nlsys(updfcn, outfcn=None, **kwargs):
         following values:
 
         * `dt` = 0: continuous-time system (default)
-        * `dt` > 0: discrete-time system with sampling period 'dt'
+        * `dt` > 0: discrete-time system with sampling period `dt`
         * `dt` = True: discrete time with unspecified sampling period
         * `dt` = None: no timebase specified
 
@@ -2415,7 +2415,7 @@ def interconnect(
         values:
 
         * `dt` = 0: continuous-time system (default)
-        * `dt` > 0`: discrete-time system with sampling period 'dt'
+        * `dt` > 0`: discrete-time system with sampling period `dt`
         * `dt` = True: discrete time with unspecified sampling period
         * `dt` = None: no timebase specified
 
