@@ -170,7 +170,7 @@ def place_varga(A, B, p, dtime=False, alpha=None):
     try:
         from slycot import sb01bd
     except ImportError:
-        raise ControlSlycot("can't find slycot module 'sb01bd'")
+        raise ControlSlycot("can't find slycot module sb01bd")
 
     # Convert the system inputs to NumPy arrays
     A_mat = np.array(A)
@@ -1200,7 +1200,7 @@ def gram(sys, type):
         # Compute Gramian by the Slycot routine sb03md
         # make sure Slycot is installed
         if sb03md is None:
-            raise ControlSlycot("can't find slycot module 'sb03md'")
+            raise ControlSlycot("can't find slycot module sb03md")
         if type == 'c':
             tra = 'T'
             C = -sys.B @ sys.B.T
@@ -1218,7 +1218,7 @@ def gram(sys, type):
     elif type == 'cf' or type == 'of':
         # Compute Cholesky factored Gramian from Slycot routine sb03od
         if sb03od is None:
-            raise ControlSlycot("can't find slycot module 'sb03od'")
+            raise ControlSlycot("can't find slycot module sb03od")
         tra = 'N'
         n = sys.nstates
         Q = np.zeros((n, n))
