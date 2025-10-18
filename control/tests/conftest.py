@@ -15,6 +15,11 @@ def pytest_runtest_setup(item):
                 for mark in item.iter_markers())):
         pytest.skip("slycot not installed")
 
+    if (not control.exception.cvxopt_check()
+        and any(mark.name == 'cvxopt'
+                for mark in item.iter_markers())):
+        pytest.skip("cvxopt not installed")
+
 
 @pytest.fixture(scope="session", autouse=True)
 def control_defaults():
