@@ -22,7 +22,7 @@ from control.lti import LTI, evalfr
 from control.statesp import StateSpace, _convert_to_statespace, \
     _rss_generate, _statesp_defaults, drss, linfnorm, rss, ss, tf2ss
 from control.xferfcn import TransferFunction, ss2tf
-from .conftest import assert_tf_close_coeff, slycotonly
+from .conftest import assert_tf_close_coeff
 
 class TestStateSpace:
     """Tests for the StateSpace class."""
@@ -229,7 +229,7 @@ class TestStateSpace:
         sys = _convert_to_statespace(TransferFunction([1], [1, 2, 1]))
         np.testing.assert_array_equal(sys.zeros(), np.array([]))
 
-    @slycotonly
+    @pytest.mark.slycot
     def test_zero_siso(self, sys222):
         """Evaluate the zeros of a SISO system."""
         # extract only first input / first output system of sys222. This system is denoted sys111
@@ -259,7 +259,7 @@ class TestStateSpace:
         true_z = np.sort([-10.568501,   3.368501])
         np.testing.assert_array_almost_equal(z, true_z)
 
-    @slycotonly
+    @pytest.mark.slycot
     def test_zero_mimo_sys623_non_square(self, sys623):
         """Evaluate the zeros of a non square MIMO system."""
 
@@ -406,7 +406,7 @@ class TestStateSpace:
                 ss2tf(result).minreal(),
             )
 
-    @slycotonly
+    @pytest.mark.slycot
     @pytest.mark.parametrize(
         "left, right, expected",
         [
@@ -481,7 +481,7 @@ class TestStateSpace:
             ss2tf(result).minreal(),
         )
 
-    @slycotonly
+    @pytest.mark.slycot
     @pytest.mark.parametrize(
         "left, right, expected",
         [
@@ -556,7 +556,7 @@ class TestStateSpace:
             ss2tf(result).minreal(),
         )
 
-    @slycotonly
+    @pytest.mark.slycot
     @pytest.mark.parametrize("power", [0, 1, 3, -3])
     @pytest.mark.parametrize("sysname", ["sys222", "sys322"])
     def test_pow(self, request, sysname, power):
@@ -575,7 +575,7 @@ class TestStateSpace:
         np.testing.assert_allclose(expected.C, result.C)
         np.testing.assert_allclose(expected.D, result.D)
 
-    @slycotonly
+    @pytest.mark.slycot
     @pytest.mark.parametrize("order", ["left", "right"])
     @pytest.mark.parametrize("sysname", ["sys121", "sys222", "sys322"])
     def test_pow_inv(self, request, sysname, order):
@@ -599,7 +599,7 @@ class TestStateSpace:
         # Check that the output is the same as the input
         np.testing.assert_allclose(R.outputs, U)
 
-    @slycotonly
+    @pytest.mark.slycot
     def test_truediv(self, sys222, sys322):
         """Test state space truediv"""
         for sys in [sys222, sys322]:
@@ -618,7 +618,7 @@ class TestStateSpace:
                 ss2tf(result).minreal(),
             )
 
-    @slycotonly
+    @pytest.mark.slycot
     def test_rtruediv(self, sys222, sys322):
         """Test state space rtruediv"""
         for sys in [sys222, sys322]:
@@ -719,7 +719,7 @@ class TestStateSpace:
             mag, phase, omega = sys.freqresp(true_omega)
             np.testing.assert_almost_equal(mag, true_mag)
 
-    @slycotonly
+    @pytest.mark.slycot
     def test_minreal(self):
         """Test a minreal model reduction."""
         # A = [-2, 0.5, 0; 0.5, -0.3, 0; 0, 0, -0.1]
@@ -1514,7 +1514,7 @@ class TestLinfnorm:
         name, systype, sysargs, dt, refgpeak, reffpeak = request.param
         return ct.c2d(systype(*sysargs), dt), refgpeak, reffpeak
 
-    @slycotonly
+    @pytest.mark.slycot
     @pytest.mark.usefixtures('ignore_future_warning')
     def test_linfnorm_ct_siso(self, ct_siso):
         sys, refgpeak, reffpeak = ct_siso
@@ -1522,7 +1522,7 @@ class TestLinfnorm:
         np.testing.assert_allclose(gpeak, refgpeak)
         np.testing.assert_allclose(fpeak, reffpeak)
 
-    @slycotonly
+    @pytest.mark.slycot
     @pytest.mark.usefixtures('ignore_future_warning')
     def test_linfnorm_dt_siso(self, dt_siso):
         sys, refgpeak, reffpeak = dt_siso
@@ -1531,7 +1531,7 @@ class TestLinfnorm:
         np.testing.assert_allclose(gpeak, refgpeak)
         np.testing.assert_allclose(fpeak, reffpeak)
 
-    @slycotonly
+    @pytest.mark.slycot
     @pytest.mark.usefixtures('ignore_future_warning')
     def test_linfnorm_ct_mimo(self, ct_siso):
         siso, refgpeak, reffpeak = ct_siso

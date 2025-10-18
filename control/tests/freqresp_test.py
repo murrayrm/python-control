@@ -19,7 +19,6 @@ from control.freqplot import (bode_plot, nyquist_plot, nyquist_response,
                               singular_values_plot, singular_values_response)
 from control.matlab import bode, rss, ss, tf
 from control.statesp import StateSpace
-from control.tests.conftest import slycotonly
 from control.xferfcn import TransferFunction
 
 pytestmark = pytest.mark.usefixtures("mplcleanup")
@@ -61,7 +60,7 @@ def test_freqresp_siso(ss_siso):
 
 
 @pytest.mark.filterwarnings(r"ignore:freqresp\(\) is deprecated")
-@slycotonly
+@pytest.mark.slycot
 def test_freqresp_mimo_legacy(ss_mimo):
     """Test MIMO frequency response calls"""
     omega = np.linspace(10e-2, 10e2, 1000)
@@ -70,7 +69,7 @@ def test_freqresp_mimo_legacy(ss_mimo):
     ctrl.freqresp(tf_mimo, omega)
 
 
-@slycotonly
+@pytest.mark.slycot
 def test_freqresp_mimo(ss_mimo):
     """Test MIMO frequency response calls"""
     omega = np.linspace(10e-2, 10e2, 1000)

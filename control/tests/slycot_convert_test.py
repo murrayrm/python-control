@@ -7,7 +7,6 @@ import numpy as np
 import pytest
 
 from control import bode, rss, ss, tf
-from control.tests.conftest import slycotonly
 
 numTests = 5
 maxStates = 10
@@ -21,7 +20,7 @@ def fixedseed():
     np.random.seed(0)
 
 
-@slycotonly
+@pytest.mark.slycot
 @pytest.mark.usefixtures("fixedseed")
 class TestSlycot:
     """Test Slycot system conversion

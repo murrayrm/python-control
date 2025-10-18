@@ -16,7 +16,6 @@ from control.exception import ControlDimension, ControlSlycot, \
 from control.mateqn import care, dare
 from control.statefbk import (ctrb, obsv, place, place_varga, lqr, dlqr,
                               gram, place_acker)
-from control.tests.conftest import slycotonly
 
 
 @pytest.fixture
@@ -128,7 +127,7 @@ class TestStatefbk:
         Wo = np.transpose(obsv(A, C))
         np.testing.assert_array_almost_equal(Wc,Wo)
 
-    @slycotonly
+    @pytest.mark.slycot
     def testGramWc(self):
         A = np.array([[1., -2.], [3., -4.]])
         B = np.array([[5., 6.], [7., 8.]])
@@ -144,7 +143,7 @@ class TestStatefbk:
         Wc = gram(sysd, 'c')
         np.testing.assert_array_almost_equal(Wc, Wctrue)
 
-    @slycotonly
+    @pytest.mark.slycot
     def testGramWc2(self):
         A = np.array([[1., -2.], [3., -4.]])
         B = np.array([[5.], [7.]])
@@ -161,7 +160,7 @@ class TestStatefbk:
         Wc = gram(sysd, 'c')
         np.testing.assert_array_almost_equal(Wc, Wctrue)
 
-    @slycotonly
+    @pytest.mark.slycot
     def testGramRc(self):
         A = np.array([[1., -2.], [3., -4.]])
         B = np.array([[5., 6.], [7., 8.]])
@@ -177,7 +176,7 @@ class TestStatefbk:
         Rc = gram(sysd, 'cf')
         np.testing.assert_array_almost_equal(Rc, Rctrue)
 
-    @slycotonly
+    @pytest.mark.slycot
     def testGramWo(self):
         A = np.array([[1., -2.], [3., -4.]])
         B = np.array([[5., 6.], [7., 8.]])
@@ -193,7 +192,7 @@ class TestStatefbk:
         Wo = gram(sysd, 'o')
         np.testing.assert_array_almost_equal(Wo, Wotrue)
 
-    @slycotonly
+    @pytest.mark.slycot
     def testGramWo2(self):
         A = np.array([[1., -2.], [3., -4.]])
         B = np.array([[5.], [7.]])
@@ -209,7 +208,7 @@ class TestStatefbk:
         Wo = gram(sysd, 'o')
         np.testing.assert_array_almost_equal(Wo, Wotrue)
 
-    @slycotonly
+    @pytest.mark.slycot
     def testGramRo(self):
         A = np.array([[1., -2.], [3., -4.]])
         B = np.array([[5., 6.], [7., 8.]])
@@ -318,7 +317,7 @@ class TestStatefbk:
         with pytest.raises(ValueError):
             place(A, B, P_repeated)
 
-    @slycotonly
+    @pytest.mark.slycot
     def testPlace_varga_continuous(self):
         """
         Check that we can place eigenvalues for dtime=False
@@ -345,7 +344,7 @@ class TestStatefbk:
         self.checkPlaced(P, P_placed)
 
 
-    @slycotonly
+    @pytest.mark.slycot
     def testPlace_varga_continuous_partial_eigs(self):
         """
         Check that we are able to use the alpha parameter to only place
@@ -365,7 +364,7 @@ class TestStatefbk:
         # No guarantee of the ordering, so sort them
         self.checkPlaced(P_expected, P_placed)
 
-    @slycotonly
+    @pytest.mark.slycot
     def testPlace_varga_discrete(self):
         """
         Check that we can place poles using dtime=True (discrete time)
@@ -379,7 +378,7 @@ class TestStatefbk:
         # No guarantee of the ordering, so sort them
         self.checkPlaced(P, P_placed)
 
-    @slycotonly
+    @pytest.mark.slycot
     def testPlace_varga_discrete_partial_eigs(self):
         """"
         Check that we can only assign a single eigenvalue in the discrete
@@ -559,7 +558,7 @@ class TestStatefbk:
 
     @pytest.mark.parametrize(
         "stabilizing",
-        [True, pytest.param(False, marks=slycotonly)])
+        [True, pytest.param(False, marks=pytest.mark.slycot)])
     def test_dare(self, stabilizing):
         """Test stabilizing and anti-stabilizing feedback, discrete"""
         A = np.diag([0.5, 2])

@@ -7,7 +7,6 @@ import numpy as np
 import pytest
 
 import control as ct
-from control.tests.conftest import slycotonly
 
 # Detailed test of (almost) all functionality
 #
@@ -237,7 +236,7 @@ def test_axes_setup():
     sys_3x1 = ct.rss(4, 3, 1)
 
 
-@slycotonly
+@pytest.mark.slycot
 @pytest.mark.usefixtures('mplcleanup')
 def test_legend_map():
     sys_mimo = ct.tf2ss(
@@ -371,7 +370,7 @@ def test_list_responses(resp_fcn):
             assert cplt.lines[row, col][1].get_color() == 'tab:orange'
 
 
-@slycotonly
+@pytest.mark.slycot
 @pytest.mark.usefixtures('mplcleanup')
 def test_linestyles():
     # Check to make sure we can change line styles

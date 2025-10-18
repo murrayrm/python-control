@@ -14,13 +14,12 @@ from control import StateSpace, TimeResponseData, c2d, forced_response, \
 from control.exception import ControlArgument, ControlDimension
 from control.modelsimp import balred, eigensys_realization, hsvd, markov, \
     modred
-from control.tests.conftest import slycotonly
 
 
 class TestModelsimp:
     """Test model reduction functions"""
 
-    @slycotonly
+    @pytest.mark.slycot
     def testHSVD(self):
         A = np.array([[1., -2.], [3., -4.]])
         B = np.array([[5.], [7.]])
@@ -390,7 +389,7 @@ class TestModelsimp:
         np.testing.assert_array_almost_equal(rsys.D, Drtrue)
 
 
-    @slycotonly
+    @pytest.mark.slycot
     def testBalredTruncate(self):
         # controlable canonical realization computed in matlab for the transfer
         # function:
@@ -431,7 +430,7 @@ class TestModelsimp:
         np.testing.assert_array_almost_equal(Cr, Crtrue, decimal=4)
         np.testing.assert_array_almost_equal(Dr, Drtrue, decimal=4)
 
-    @slycotonly
+    @pytest.mark.slycot
     def testBalredMatchDC(self):
         # controlable canonical realization computed in matlab for the transfer
         # function:

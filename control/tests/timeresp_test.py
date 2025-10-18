@@ -9,7 +9,6 @@ import pytest
 import control as ct
 from control import StateSpace, TransferFunction, c2d, isctime, ss2tf, tf2ss
 from control.exception import pandas_check, slycot_check
-from control.tests.conftest import slycotonly
 from control.timeresp import _default_time_vector, _ideal_tfinal_and_dt, \
     forced_response, impulse_response, initial_response, step_info, \
     step_response
@@ -454,7 +453,7 @@ class TestTimeresp:
     @pytest.mark.parametrize(
         "tsystem",
         ['mimo_ss_step_matlab',
-         pytest.param('mimo_tf_step_info', marks=slycotonly)],
+         pytest.param('mimo_tf_step_info', marks=pytest.mark.slycot)],
         indirect=["tsystem"])
     def test_step_info_mimo(self, tsystem, systype, yfinal):
         """Test step info for MIMO systems."""
@@ -799,7 +798,7 @@ class TestTimeresp:
         np.testing.assert_array_almost_equal(yout, ytrue, decimal=6)
 
 
-    @slycotonly
+    @pytest.mark.slycot
     def test_step_robustness(self):
         "Test robustness os step_response against denomiantors: gh-240"
         # Create 2 input, 2 output system
@@ -902,9 +901,9 @@ class TestTimeresp:
                               "siso_dtf2",
                               "siso_ss2_dtnone",  # undetermined timebase
                               "mimo_ss2",   # MIMO
-                              pytest.param("mimo_tf2", marks=slycotonly),
+                              pytest.param("mimo_tf2", marks=pytest.mark.slycot),
                               "mimo_dss1",
-                              pytest.param("mimo_dtf1", marks=slycotonly),
+                              pytest.param("mimo_dtf1", marks=pytest.mark.slycot),
                               ],
                              indirect=True)
     @pytest.mark.parametrize("fun", [step_response,

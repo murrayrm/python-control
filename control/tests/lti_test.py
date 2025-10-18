@@ -10,7 +10,6 @@ from control import NonlinearIOSystem, c2d, common_timebase, isctime, \
     isdtime, issiso, ss, tf, tf2ss
 from control.exception import slycot_check
 from control.lti import LTI, bandwidth, damp, dcgain, evalfr, poles, zeros
-from control.tests.conftest import slycotonly
 
 
 class TestLTI:
@@ -59,7 +58,7 @@ class TestLTI:
         assert issiso(sys)
         assert issiso(sys, strict=True)
 
-    @slycotonly
+    @pytest.mark.slycot
     def test_issiso_mimo(self):
         # MIMO transfer function
         sys = tf([[[-1, 41], [1]], [[1, 2], [3, 4]]],
