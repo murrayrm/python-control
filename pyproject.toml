@@ -51,10 +51,15 @@ source = "https://github.com/python-control/python-control"
 write_to = "control/_version.py"
 
 [tool.pytest.ini_options]
-addopts = "-ra"
+addopts = "-ra --strict-markers"
 filterwarnings = [
     "error:.*matrix subclass:PendingDeprecationWarning",
 ]
+markers = [
+  "slycot: tests needing slycot",
+  "cvxopt: tests needing cvxopt",
+]
+
 
 [tool.ruff]
 
