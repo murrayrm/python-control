@@ -12,7 +12,6 @@ from control.statesp import StateSpace
 from control.xferfcn import TransferFunction
 from control.frdata import frd, _convert_to_frd, FrequencyResponseData
 from control import bdalg, freqplot
-from control.exception import pandas_check
 
 
 class TestFRD:
@@ -820,7 +819,7 @@ def test_named_signals():
     assert f1.output_labels == ['y0']
 
 
-@pytest.mark.skipif(not pandas_check(), reason="pandas not installed")
+@pytest.mark.pandas
 def test_to_pandas():
     # Create a SISO frequency response
     h1 = TransferFunction([1], [1, 2, 2])

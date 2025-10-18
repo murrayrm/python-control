@@ -20,6 +20,12 @@ def pytest_runtest_setup(item):
                 for mark in item.iter_markers())):
         pytest.skip("cvxopt not installed")
 
+    if (not control.exception.pandas_check()
+        and any(mark.name == 'pandas'
+                for mark in item.iter_markers())):
+        pytest.skip("pandas not installed")
+
+
 
 @pytest.fixture(scope="session", autouse=True)
 def control_defaults():

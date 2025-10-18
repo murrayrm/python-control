@@ -1235,7 +1235,7 @@ class TestTimeresp:
         assert x.shape == (T.size, sys.nstates)
 
 
-@pytest.mark.skipif(not pandas_check(), reason="pandas not installed")
+@pytest.mark.pandas
 def test_to_pandas():
     # Create a SISO time response
     sys = ct.rss(2, 1, 1)

@@ -58,6 +58,7 @@ filterwarnings = [
 markers = [
   "slycot: tests needing slycot",
   "cvxopt: tests needing cvxopt",
+  "pandas: tests needing pandas",
 ]
 
 
