@@ -6,9 +6,6 @@ import pytest
 
 import control
 
-cvxoptonly = pytest.mark.skipif(
-    not control.exception.cvxopt_check(), reason="cvxopt not installed")
-
 def pytest_runtest_setup(item):
     if (not control.exception.slycot_check()
         and any(mark.name == 'slycot'
