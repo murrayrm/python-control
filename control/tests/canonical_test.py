@@ -4,8 +4,6 @@ import numpy as np
 import pytest
 import scipy.linalg
 
-from control.tests.conftest import slycotonly
-
 from control import ss, tf, tf2ss
 from control.canonical import canonical_form, reachable_form, \
     observable_form, modal_form, similarity_transform, bdschur
@@ -244,7 +242,7 @@ def block_diag_from_eig(eigvals):
     return scipy.linalg.block_diag(*blocks)
 
 
-@slycotonly
+@pytest.mark.slycot
 @pytest.mark.parametrize(
     "eigvals, condmax, blksizes",
     [
@@ -269,7 +267,7 @@ def test_bdschur_ref(eigvals, condmax, blksizes):
     np.testing.assert_array_almost_equal(solve(t, a) @ t, b)
 
 
-@slycotonly
+@pytest.mark.slycot
 @pytest.mark.parametrize(
     "eigvals, sorted_blk_eigvals, sort",
     [
@@ -300,7 +298,7 @@ def test_bdschur_sort(eigvals, sorted_blk_eigvals, sort):
                                    blk_eigval.imag)
 
 
-@slycotonly
+@pytest.mark.slycot
 def test_bdschur_defective():
     # the eigenvalues of this simple defective matrix cannot be separated
     # a previous version of the bdschur would fail on this
@@ -323,14 +321,14 @@ def test_bdschur_condmax_lt_1():
         bdschur(1, condmax=np.nextafter(1, 0))
 
 
-@slycotonly
+@pytest.mark.slycot
 def test_bdschur_invalid_sort():
     # sort must be in ('continuous', 'discrete')
     with pytest.raises(ValueError):
         bdschur(1, sort='no-such-sort')
 
 
-@slycotonly
+@pytest.mark.slycot
 @pytest.mark.parametrize(
     "A_true, B_true, C_true, D_true",
     [(np.diag([4.0, 3.0, 2.0, 1.0]),  # order from largest to smallest
@@ -390,7 +388,7 @@ def test_modal_form(A_true, B_true, C_true, D_true):
             C @ np.linalg.matrix_power(A, i) @ B)
 
 
-@slycotonly
+@pytest.mark.slycot
 @pytest.mark.parametrize(
     "condmax, len_blksizes",
     [(1.1, 1),
@@ -409,7 +407,7 @@ def test_modal_form_condmax(condmax, len_blksizes):
     np.testing.assert_array_almost_equal(zsys.D, xsys.D)
 
 
-@slycotonly
+@pytest.mark.slycot
 @pytest.mark.parametrize(
     "sys_type",
     ['continuous',

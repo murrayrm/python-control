@@ -12,8 +12,6 @@ from control.statesp import StateSpace
 from control.xferfcn import TransferFunction
 from control.frdata import frd, _convert_to_frd, FrequencyResponseData
 from control import bdalg, freqplot
-from control.tests.conftest import slycotonly
-from control.exception import pandas_check
 
 
 class TestFRD:
@@ -567,7 +565,7 @@ class TestFRD:
         np.testing.assert_array_almost_equal(expected_frd.omega, result.omega)
         np.testing.assert_array_almost_equal(expected_frd.frdata, result.frdata)
 
-    @slycotonly
+    @pytest.mark.slycot
     def test_truediv_mimo_siso(self):
         omega = np.logspace(-1, 1, 10)
         tf_mimo = TransferFunction([1], [1, 0]) * np.eye(2)
@@ -592,7 +590,7 @@ class TestFRD:
         np.testing.assert_array_almost_equal(expected.omega, result.omega)
         np.testing.assert_array_almost_equal(expected.frdata, result.frdata)
 
-    @slycotonly
+    @pytest.mark.slycot
     def test_rtruediv_mimo_siso(self):
         omega = np.logspace(-1, 1, 10)
         tf_mimo = TransferFunction([1], [1, 0]) * np.eye(2)
@@ -821,7 +819,7 @@ def test_named_signals():
     assert f1.output_labels == ['y0']
 
 
-@pytest.mark.skipif(not pandas_check(), reason="pandas not installed")
+@pytest.mark.pandas
 def test_to_pandas():
     # Create a SISO frequency response
     h1 = TransferFunction([1], [1, 2, 2])

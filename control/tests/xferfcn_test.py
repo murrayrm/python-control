@@ -14,7 +14,7 @@ from control import (StateSpace, TransferFunction, defaults, evalfr, isctime,
                      isdtime, reset_defaults, rss, sample_system, set_defaults,
                      ss, ss2tf, tf, tf2ss, zpk)
 from control.statesp import _convert_to_statespace
-from control.tests.conftest import assert_tf_close_coeff, slycotonly
+from control.tests.conftest import assert_tf_close_coeff
 from control.xferfcn import _convert_to_transfer_function
 
 
@@ -997,7 +997,7 @@ class TestXferFcn:
         np.testing.assert_allclose(hm.num[0][0], hr.num[0][0])
         np.testing.assert_allclose(hr.dt, hm.dt)
 
-    @slycotonly
+    @pytest.mark.slycot
     def test_state_space_conversion_mimo(self):
         """Test conversion of a single input, two-output state-space
         system against the same TF"""

@@ -42,7 +42,6 @@ from scipy.linalg import eigvals, solve
 import control as ct
 from control.mateqn import lyap, dlyap, care, dare
 from control.exception import ControlArgument, ControlDimension, slycot_check
-from control.tests.conftest import slycotonly
 
 
 class TestMatrixEquations:
@@ -88,7 +87,7 @@ class TestMatrixEquations:
             X_slycot = lyap(A, B, C, method='slycot')
             assert_array_almost_equal(X_scipy, X_slycot)
 
-    @slycotonly
+    @pytest.mark.slycot
     def test_lyap_g(self):
         A = array([[-1, 2], [-3, -4]])
         Q = array([[3, 1], [1, 1]])
@@ -115,7 +114,7 @@ class TestMatrixEquations:
         # print("The solution obtained is ", X)
         assert_array_almost_equal(A @ X @ A.T - X + Q, zeros((2,2)))
 
-    @slycotonly
+    @pytest.mark.slycot
     def test_dlyap_g(self):
         A = array([[-0.6, 0],[-0.1, -0.4]])
         Q = array([[3, 1],[1, 1]])
@@ -129,7 +128,7 @@ class TestMatrixEquations:
         with pytest.raises(ControlArgument, match="'scipy' not valid"):
             X = dlyap(A, Q, None, E, method='scipy')
 
-    @slycotonly
+    @pytest.mark.slycot
     def test_dlyap_sylvester(self):
         A = 5
         B = array([[4, 3], [4, 3]])

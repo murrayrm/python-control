@@ -12,7 +12,6 @@ import math
 import control as ct
 import control.optimal as opt
 import control.flatsys as flat
-from control.tests.conftest import slycotonly
 from numpy.lib import NumpyVersion
 
 
@@ -103,7 +102,7 @@ def test_finite_horizon_simple(method):
 # optimal control problem with terminal cost set to LQR "cost to go"
 # gives the same answer as LQR.
 #
-@slycotonly
+@pytest.mark.slycot
 def test_discrete_lqr():
     # oscillator model defined in 2D
     # Source: https://www.mpt3.org/UI/RegulationProblem

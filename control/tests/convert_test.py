@@ -22,7 +22,6 @@ from control import rss, ss, ss2tf, tf, tf2ss
 from control.statefbk import ctrb, obsv
 from control.freqplot import bode
 from control.exception import slycot_check, ControlMIMONotImplemented
-from control.tests.conftest import slycotonly
 
 
 # Set to True to print systems to the output.
@@ -214,7 +213,7 @@ class TestConvert:
         np.testing.assert_allclose(numref,
                                    np.array(gtf.num) / np.array(gtf.den))
 
-    @slycotonly
+    @pytest.mark.slycot
     def testTf2SsDuplicatePoles(self):
         """Tests for 'too few poles for MIMO tf gh-111'"""
         num = [[[1], [0]],
@@ -225,7 +224,7 @@ class TestConvert:
         s = ss(g)
         np.testing.assert_allclose(g.poles(), s.poles())
 
-    @slycotonly
+    @pytest.mark.slycot
     def test_tf2ss_robustness(self):
         """Unit test to make sure that tf2ss is working correctly. gh-240"""
         num =  [ [[0], [1]],           [[1],   [0]] ]

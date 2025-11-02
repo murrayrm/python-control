@@ -30,7 +30,6 @@ from control.matlab import connect, append
 from control.exception import ControlArgument
 
 from control.frdata import FRD
-from control.tests.conftest import slycotonly
 
 # for running these through Matlab or Octave
 '''
@@ -487,21 +486,21 @@ class TestMatlab:
         ref = np.array([[44.8 - 21.4j, 0.], [0., 44.8 - 21.4j]])
         np.testing.assert_array_almost_equal(fr, ref)
 
-    @slycotonly
+    @pytest.mark.slycot
     def testHsvd(self, siso):
         """Call hsvd()"""
         hsvd(siso.ss1)
         hsvd(siso.ss2)
         hsvd(siso.ss3)
 
-    @slycotonly
+    @pytest.mark.slycot
     def testBalred(self, siso):
         """Call balred()"""
         balred(siso.ss1, 1)
         balred(siso.ss2, 2)
         balred(siso.ss3, [2, 2])
 
-    @slycotonly
+    @pytest.mark.slycot
     def testModred(self, siso):
         """Call modred()"""
         modred(siso.ss1, [1])
@@ -509,7 +508,7 @@ class TestMatlab:
         modred(siso.ss1, [1], 'matchdc')
         modred(siso.ss1, [1], 'truncate')
 
-    @slycotonly
+    @pytest.mark.slycot
     def testPlace_varga(self, siso):
         """Call place_varga()"""
         place_varga(siso.ss1.A, siso.ss1.B, [-2, -2])
@@ -552,7 +551,7 @@ class TestMatlab:
         obsv(siso.ss1.A, siso.ss1.C)
         obsv(siso.ss2.A, siso.ss2.C)
 
-    @slycotonly
+    @pytest.mark.slycot
     def testGram(self, siso):
         """Call gram()"""
         gram(siso.ss1, 'c')
@@ -696,7 +695,7 @@ class TestMatlab:
         frd2 = frd(frd1.frdata[0, 0, :], omega)
         assert isinstance(frd2, FRD)
 
-    @slycotonly
+    @pytest.mark.slycot
     def testMinreal(self, verbose=False):
         """Test a minreal model reduction"""
         # A = [-2, 0.5, 0; 0.5, -0.3, 0; 0, 0, -0.1]

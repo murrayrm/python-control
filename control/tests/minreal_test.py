@@ -11,7 +11,6 @@ from control import rss, ss, zeros
 from control.statesp import StateSpace
 from control.xferfcn import TransferFunction
 from itertools import permutations
-from control.tests.conftest import slycotonly
 
 
 @pytest.fixture
@@ -19,7 +18,7 @@ def fixedseed(scope="class"):
     np.random.seed(5)
 
 
-@slycotonly
+@pytest.mark.slycot
 @pytest.mark.usefixtures("fixedseed")
 class TestMinreal:
     """Tests for the StateSpace class."""
