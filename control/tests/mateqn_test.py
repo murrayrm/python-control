@@ -39,53 +39,56 @@ from numpy.testing import assert_array_almost_equal, assert_array_less
 import pytest
 from scipy.linalg import eigvals, solve
 
-import control as ct
 from control.mateqn import lyap, dlyap, care, dare
-from control.exception import ControlArgument, ControlDimension, slycot_check
+from control.exception import ControlArgument, ControlDimension
 
 
 class TestMatrixEquations:
     """These are tests for the matrix equation solvers in mateqn.py"""
 
-    def test_lyap(self):
+    @pytest.mark.parametrize('method',
+                             ['scipy',
+                              pytest.param('slycot', marks=pytest.mark.slycot)])
+    def test_lyap(self, method):
         A = array([[-1, 1], [-1, 0]])
         Q = array([[1, 0], [0, 1]])
-        X = lyap(A, Q)
+        X = lyap(A, Q, method=method)
         # print("The solution obtained is ", X)
         assert_array_almost_equal(A @ X + X @ A.T + Q, zeros((2,2)))
 
         A = array([[1, 2], [-3, -4]])
         Q = array([[3, 1], [1, 1]])
-        X = lyap(A,Q)
+        X = lyap(A,Q, method=method)
         # print("The solution obtained is ", X)
         assert_array_almost_equal(A @ X + X @ A.T + Q, zeros((2,2)))
 
         # Compare methods
-        if slycot_check():
+        if method == 'slycot':
             X_scipy = lyap(A, Q, method='scipy')
-            X_slycot = lyap(A, Q, method='slycot')
-            assert_array_almost_equal(X_scipy, X_slycot)
+            assert_array_almost_equal(X_scipy, X)
 
-    def test_lyap_sylvester(self):
+    @pytest.mark.parametrize('method',
+                             ['scipy',
+                              pytest.param('slycot', marks=pytest.mark.slycot)])
+    def test_lyap_sylvester(self, method):
         A = 5
         B = array([[4, 3], [4, 3]])
         C = array([2, 1])
-        X = lyap(A, B, C)
+        X = lyap(A, B, C, method=method)
         # print("The solution obtained is ", X)
         assert_array_almost_equal(A * X + X @ B + C, zeros((1,2)))
 
         A = array([[2, 1], [1, 2]])
         B = array([[1, 2], [0.5, 0.1]])
         C = array([[1, 0], [0, 1]])
-        X = lyap(A, B, C)
+        X = lyap(A, B, C, method=method)
         # print("The solution obtained is ", X)
         assert_array_almost_equal(A @ X + X @ B + C, zeros((2,2)))
 
         # Compare methods
-        if slycot_check():
+        if method=='slycot':
             X_scipy = lyap(A, B, C, method='scipy')
-            X_slycot = lyap(A, B, C, method='slycot')
-            assert_array_almost_equal(X_scipy, X_slycot)
+            assert_array_almost_equal(X_scipy, X)
 
     @pytest.mark.slycot
     def test_lyap_g(self):
@@ -101,18 +104,26 @@ class TestMatrixEquations:
         with pytest.raises(ControlArgument, match="'scipy' not valid"):
             X = lyap(A, Q, None, E, method='scipy')
 
-    def test_dlyap(self):
+    @pytest.mark.parametrize('method',
+                             ['scipy',
+                              pytest.param('slycot', marks=pytest.mark.slycot)])
+    def test_dlyap(self, method):
         A = array([[-0.6, 0],[-0.1, -0.4]])
         Q = array([[1,0],[0,1]])
-        X = dlyap(A,Q)
+        X = dlyap(A,Q,method=method)
         # print("The solution obtained is ", X)
         assert_array_almost_equal(A @ X @ A.T - X + Q, zeros((2,2)))
 
         A = array([[-0.6, 0],[-0.1, -0.4]])
         Q = array([[3, 1],[1, 1]])
-        X = dlyap(A,Q)
+        X = dlyap(A,Q,method=method)
         # print("The solution obtained is ", X)
         assert_array_almost_equal(A @ X @ A.T - X + Q, zeros((2,2)))
+
+        # Compare methods
+        if method=='slycot':
+            X_scipy = dlyap(A,Q, method='scipy')
+            assert_array_almost_equal(X_scipy, X)
 
     @pytest.mark.slycot
     def test_dlyap_g(self):
@@ -148,12 +159,15 @@ class TestMatrixEquations:
         with pytest.raises(ControlArgument, match="'scipy' not valid"):
             X = dlyap(A, B, C, method='scipy')
 
-    def test_care(self):
+    @pytest.mark.parametrize('method',
+                             ['scipy',
+                              pytest.param('slycot', marks=pytest.mark.slycot)])
+    def test_care(self, method):
         A = array([[-2, -1],[-1, -1]])
         Q = array([[0, 0],[0, 1]])
         B = array([[1, 0],[0, 4]])
 
-        X, L, G = care(A, B, Q)
+        X, L, G = care(A, B, Q, method=method)
         # print("The solution obtained is", X)
         M = A.T @ X + X @ A - X @ B @ B.T @ X + Q
         assert_array_almost_equal(M,
@@ -161,14 +175,16 @@ class TestMatrixEquations:
         assert_array_almost_equal(B.T @ X, G)
 
         # Compare methods
-        if slycot_check():
+        if method == 'slycot':
             X_scipy, L_scipy, G_scipy = care(A, B, Q, method='scipy')
-            X_slycot, L_slycot, G_slycot = care(A, B, Q, method='slycot')
-            assert_array_almost_equal(X_scipy, X_slycot)
-            assert_array_almost_equal(np.sort(L_scipy), np.sort(L_slycot))
-            assert_array_almost_equal(G_scipy, G_slycot)
+            assert_array_almost_equal(X_scipy, X)
+            assert_array_almost_equal(np.sort(L_scipy), np.sort(L))
+            assert_array_almost_equal(G_scipy, G)
 
-    def test_care_g(self):
+    @pytest.mark.parametrize('method',
+                             ['scipy',
+                              pytest.param('slycot', marks=pytest.mark.slycot)])
+    def test_care_g(self, method):
         A = array([[-2, -1],[-1, -1]])
         Q = array([[0, 0],[0, 1]])
         B = array([[1, 0],[0, 4]])
@@ -176,7 +192,7 @@ class TestMatrixEquations:
         S = array([[0, 0],[0, 0]])
         E = array([[2, 1],[1, 2]])
 
-        X,L,G = care(A,B,Q,R,S,E)
+        X,L,G = care(A,B,Q,R,S,E,method=method)
         # print("The solution obtained is", X)
         Gref = solve(R, B.T @ X @ E + S.T)
         assert_array_almost_equal(Gref, G)
@@ -186,16 +202,17 @@ class TestMatrixEquations:
             zeros((2,2)))
 
         # Compare methods
-        if slycot_check():
+        if method=='slycot':
             X_scipy, L_scipy, G_scipy = care(
                 A, B, Q, R, S, E, method='scipy')
-            X_slycot, L_slycot, G_slycot = care(
-                A, B, Q, R, S, E, method='slycot')
-            assert_array_almost_equal(X_scipy, X_slycot)
-            assert_array_almost_equal(np.sort(L_scipy), np.sort(L_slycot))
-            assert_array_almost_equal(G_scipy, G_slycot)
+            assert_array_almost_equal(X_scipy, X)
+            assert_array_almost_equal(np.sort(L_scipy), np.sort(L))
+            assert_array_almost_equal(G_scipy, G)
 
-    def test_care_g2(self):
+    @pytest.mark.parametrize('method',
+                             ['scipy',
+                              pytest.param('slycot', marks=pytest.mark.slycot)])
+    def test_care_g2(self, method):
         A = array([[-2, -1],[-1, -1]])
         Q = array([[0, 0],[0, 1]])
         B = array([[1],[0]])
@@ -203,7 +220,7 @@ class TestMatrixEquations:
         S = array([[1],[0]])
         E = array([[2, 1],[1, 2]])
 
-        X,L,G = care(A,B,Q,R,S,E)
+        X,L,G = care(A,B,Q,R,S,E,method=method)
         # print("The solution obtained is", X)
         Gref = 1/R * (B.T @ X @ E + S.T)
         assert_array_almost_equal(
@@ -213,22 +230,23 @@ class TestMatrixEquations:
         assert_array_almost_equal(Gref , G)
 
         # Compare methods
-        if slycot_check():
+        if method=='slycot':
             X_scipy, L_scipy, G_scipy = care(
                 A, B, Q, R, S, E, method='scipy')
-            X_slycot, L_slycot, G_slycot = care(
-                A, B, Q, R, S, E, method='slycot')
-            assert_array_almost_equal(X_scipy, X_slycot)
-            assert_array_almost_equal(L_scipy, L_slycot)
-            assert_array_almost_equal(G_scipy, G_slycot)
+            assert_array_almost_equal(X_scipy, X)
+            assert_array_almost_equal(L_scipy, L)
+            assert_array_almost_equal(G_scipy, G)
 
-    def test_dare(self):
+    @pytest.mark.parametrize('method',
+                             ['scipy',
+                              pytest.param('slycot', marks=pytest.mark.slycot)])
+    def test_dare(self, method):
         A = array([[-0.6, 0],[-0.1, -0.4]])
         Q = array([[2, 1],[1, 0]])
         B = array([[2, 1],[0, 1]])
         R = array([[1, 0],[0, 1]])
 
-        X, L, G = dare(A, B, Q, R)
+        X, L, G = dare(A, B, Q, R, method=method)
         # print("The solution obtained is", X)
         Gref = solve(B.T @ X @ B + R, B.T @ X @ A)
         assert_array_almost_equal(Gref, G)
@@ -243,7 +261,7 @@ class TestMatrixEquations:
         B = array([[1],[0]])
         R = 2
 
-        X, L, G = dare(A, B, Q, R)
+        X, L, G = dare(A, B, Q, R, method=method)
         # print("The solution obtained is", X)
         AtXA = A.T @ X @ A
         AtXB = A.T @ X @ B
@@ -256,6 +274,7 @@ class TestMatrixEquations:
         lam = eigvals(A - B @ G)
         assert_array_less(abs(lam), 1.0)
 
+    @pytest.mark.slycot
     def test_dare_compare(self):
         A = np.array([[-0.6, 0], [-0.1, -0.4]])
         Q = np.array([[2, 1], [1, 0]])
@@ -267,15 +286,16 @@ class TestMatrixEquations:
         # Solve via scipy
         X_scipy, L_scipy, G_scipy = dare(A, B, Q, R, method='scipy')
 
-        # Solve via slycot
-        if ct.slycot_check():
-            X_slicot, L_slicot, G_slicot = dare(
-                A, B, Q, R, S, E, method='scipy')
-            np.testing.assert_almost_equal(X_scipy, X_slicot)
-            np.testing.assert_almost_equal(L_scipy, L_slicot)
-            np.testing.assert_almost_equal(G_scipy, G_slicot)
+        X_slicot, L_slicot, G_slicot = dare(
+            A, B, Q, R, S, E, method='scipy')
+        np.testing.assert_almost_equal(X_scipy, X_slicot)
+        np.testing.assert_almost_equal(L_scipy, L_slicot)
+        np.testing.assert_almost_equal(G_scipy, G_slicot)
 
-    def test_dare_g(self):
+    @pytest.mark.parametrize('method',
+                             ['scipy',
+                              pytest.param('slycot', marks=pytest.mark.slycot)])
+    def test_dare_g(self, method):
         A = array([[-0.6, 0],[-0.1, -0.4]])
         Q = array([[2, 1],[1, 3]])
         B = array([[1, 5],[2, 4]])
@@ -283,7 +303,7 @@ class TestMatrixEquations:
         S = array([[1, 0],[2, 0]])
         E = array([[2, 1],[1, 2]])
 
-        X, L, G = dare(A, B, Q, R, S, E)
+        X, L, G = dare(A, B, Q, R, S, E, method=method)
         # print("The solution obtained is", X)
         Gref = solve(B.T @ X @ B + R, B.T @ X @ A + S.T)
         assert_array_almost_equal(Gref, G)
@@ -293,8 +313,18 @@ class TestMatrixEquations:
         # check for stable closed loop
         lam = eigvals(A - B @ G, E)
         assert_array_less(abs(lam), 1.0)
+        # Compare methods
+        if method=='slycot':
+            X_scipy, L_scipy, G_scipy = dare(
+                A, B, Q, R, S, E, method='scipy')
+            assert_array_almost_equal(X_scipy, X)
+            assert_array_almost_equal(L_scipy, L)
+            assert_array_almost_equal(G_scipy, G)
 
-    def test_dare_g2(self):
+    @pytest.mark.parametrize('method',
+                             ['scipy',
+                              pytest.param('slycot', marks=pytest.mark.slycot)])
+    def test_dare_g2(self, method):
         A = array([[-0.6, 0], [-0.1, -0.4]])
         Q = array([[2, 1], [1, 3]])
         B = array([[1], [2]])
@@ -302,7 +332,7 @@ class TestMatrixEquations:
         S = array([[1], [2]])
         E = array([[2, 1], [1, 2]])
 
-        X, L, G = dare(A, B, Q, R, S, E)
+        X, L, G = dare(A, B, Q, R, S, E, method=method)
         # print("The solution obtained is", X)
         AtXA = A.T @ X @ A
         AtXB = A.T @ X @ B
@@ -315,6 +345,13 @@ class TestMatrixEquations:
         # check for stable closed loop
         lam = eigvals(A - B @ G, E)
         assert_array_less(abs(lam), 1.0)
+
+        if method=='slycot':
+            X_scipy, L_scipy, G_scipy = dare(
+                A, B, Q, R, S, E, method='scipy')
+            assert_array_almost_equal(X_scipy, X)
+            assert_array_almost_equal(L_scipy, L)
+            assert_array_almost_equal(G_scipy, G)
 
     def test_raise(self):
         """ Test exception raise for invalid inputs """
