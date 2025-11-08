@@ -6,7 +6,7 @@ import pytest
 
 import control as ct
 import control.optimal as opt
-from control import lqe, dlqe, rss, tf, ControlArgument, slycot_check
+from control import lqe, dlqe, rss, tf, ControlArgument
 from math import log, pi
 
 # Utility function to check LQE answer
@@ -27,11 +27,10 @@ def check_DLQE(L, P, poles, G, QN, RN):
     np.testing.assert_almost_equal(L, L_expected)
     np.testing.assert_almost_equal(poles, poles_expected)
 
-@pytest.mark.parametrize("method", [None, 'slycot', 'scipy'])
+@pytest.mark.parametrize("method", [None,
+                                    pytest.param('slycot', marks=pytest.mark.slycot),
+                                    'scipy'])
 def test_LQE(method):
-    if method == 'slycot' and not slycot_check():
-        return
-
     A, G, C, QN, RN = (np.array([[X]]) for X in [0., .1, 1., 10., 2.])
     L, P, poles = lqe(A, G, C, QN, RN, method=method)
     check_LQE(L, P, poles, G, QN, RN)
@@ -78,11 +77,10 @@ def test_lqe_call_format(cdlqe):
     with pytest.raises(ct.ControlArgument, match="LTI system must be"):
         L, P, E = cdlqe(sys_tf, Q, R)
 
-@pytest.mark.parametrize("method", [None, 'slycot', 'scipy'])
+@pytest.mark.parametrize("method", [None,
+                                    pytest.param('slycot', marks=pytest.mark.slycot),
+                                    'scipy'])
 def test_DLQE(method):
-    if method == 'slycot' and not slycot_check():
-        return
-
     A, G, C, QN, RN = (np.array([[X]]) for X in [0., .1, 1., 10., 2.])
     L, P, poles = dlqe(A, G, C, QN, RN, method=method)
     check_DLQE(L, P, poles, G, QN, RN)

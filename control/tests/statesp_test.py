@@ -1602,10 +1602,13 @@ def test_tf2ss_unstable(method):
     np.testing.assert_allclose(tf_poles, ss_poles, rtol=1e-4)
 
 
-def test_tf2ss_mimo():
+@pytest.mark.parametrize('have_slycot',
+                         [pytest.param(True, marks=pytest.mark.slycot),
+                          pytest.param(False, marks=pytest.mark.noslycot)])
+def test_tf2ss_mimo(have_slycot):
     sys_tf = ct.tf([[[1], [1, 1, 1]]], [[[1, 1, 1], [1, 2, 1]]])
 
-    if ct.slycot_check():
+    if have_slycot:
         sys_ss = ct.ss(sys_tf)
         np.testing.assert_allclose(
             np.sort(sys_tf.poles()), np.sort(sys_ss.poles()))

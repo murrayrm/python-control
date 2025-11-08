@@ -21,16 +21,13 @@ import pytest
 from control import rss, ss, ss2tf, tf, tf2ss
 from control.statefbk import ctrb, obsv
 from control.freqplot import bode
-from control.exception import slycot_check, ControlMIMONotImplemented
+from control.exception import ControlMIMONotImplemented
 
 
 # Set to True to print systems to the output.
 verbose = False
 # Maximum number of states to test + 1
 maxStates = 4
-# Maximum number of inputs and outputs to test + 1
-# If slycot is not installed, just check SISO
-maxIO = 5 if slycot_check() else 2
 
 
 @pytest.fixture
@@ -49,8 +46,13 @@ class TestConvert:
 
     @pytest.mark.usefixtures("legacy_plot_signature")
     @pytest.mark.parametrize("states", range(1, maxStates))
-    @pytest.mark.parametrize("inputs", range(1, maxIO))
-    @pytest.mark.parametrize("outputs", range(1, maxIO))
+    # If slycot is not installed, just check SISO
+    @pytest.mark.parametrize("inputs",
+                             [1] + [pytest.param(i, marks=pytest.mark.slycot)
+                                    for i in range(2, 5)])
+    @pytest.mark.parametrize("outputs",
+                             [1] + [pytest.param(i, marks=pytest.mark.slycot)
+                                    for i in range(2, 5)])
     def testConvert(self, fixedseed, states, inputs, outputs):
         """Test state space to transfer function conversion.
 
@@ -147,7 +149,11 @@ class TestConvert:
                 np.testing.assert_array_almost_equal(
                     ssorig_imag, tfxfrm_imag, decimal=5)
 
-    def testConvertMIMO(self):
+
+    @pytest.mark.parametrize('have_slycot',
+                             [pytest.param(True, marks=pytest.mark.slycot),
+                              pytest.param(False, marks=pytest.mark.noslycot)])
+    def testConvertMIMO(self, have_slycot):
         """Test state space to transfer function conversion.
 
         Do a MIMO conversion and make sure that it is processed
@@ -165,7 +171,7 @@ class TestConvert:
                     [0.008, 1.39, 48.78]]])
 
         # Convert to state space and look for an error
-        if (not slycot_check()):
+        if not have_slycot:
             with pytest.raises(ControlMIMONotImplemented):
                 tf2ss(tsys)
         else:

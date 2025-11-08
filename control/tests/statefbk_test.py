@@ -12,7 +12,7 @@ from math import pi
 import control as ct
 from control import poles, rss, ss, tf
 from control.exception import ControlDimension, ControlSlycot, \
-    ControlArgument, slycot_check
+    ControlArgument
 from control.mateqn import care, dare
 from control.statefbk import (ctrb, obsv, place, place_varga, lqr, dlqr,
                               gram, place_acker)
@@ -411,27 +411,30 @@ class TestStatefbk:
         np.testing.assert_array_almost_equal(K, K_expected)
         np.testing.assert_array_almost_equal(poles, poles_expected)
 
-    @pytest.mark.parametrize("method", [None, 'slycot', 'scipy'])
+    @pytest.mark.parametrize("method",
+                             [None,
+                              pytest.param('slycot', marks=pytest.mark.slycot),
+                              'scipy'])
     def test_LQR_integrator(self, method):
-        if method == 'slycot' and not slycot_check():
-            return
         A, B, Q, R = (np.array([[X]]) for X in [0., 1., 10., 2.])
         K, S, poles = lqr(A, B, Q, R, method=method)
         self.check_LQR(K, S, poles, Q, R)
 
-    @pytest.mark.parametrize("method", [None, 'slycot', 'scipy'])
+    @pytest.mark.parametrize("method",
+                             [None,
+                              pytest.param('slycot', marks=pytest.mark.slycot),
+                              'scipy'])
     def test_LQR_3args(self, method):
-        if method == 'slycot' and not slycot_check():
-            return
         sys = ss(0., 1., 1., 0.)
         Q, R = (np.array([[X]]) for X in [10., 2.])
         K, S, poles = lqr(sys, Q, R, method=method)
         self.check_LQR(K, S, poles, Q, R)
 
-    @pytest.mark.parametrize("method", [None, 'slycot', 'scipy'])
+    @pytest.mark.parametrize("method",
+                             [None,
+                              pytest.param('slycot', marks=pytest.mark.slycot),
+                              'scipy'])
     def test_DLQR_3args(self, method):
-        if method == 'slycot' and not slycot_check():
-            return
         dsys = ss(0., 1., 1., 0., .1)
         Q, R = (np.array([[X]]) for X in [10., 2.])
         K, S, poles = dlqr(dsys, Q, R, method=method)
@@ -448,12 +451,12 @@ class TestStatefbk:
         with pytest.raises(ControlArgument, match="Unknown method"):
             K, S, poles = cdlqr(A, B, Q, R, method='nosuchmethod')
 
+    @pytest.mark.noslycot
     @pytest.mark.parametrize("cdlqr", [lqr, dlqr])
     def test_lqr_slycot_not_installed(self, cdlqr):
         A, B, Q, R = 0, 1, 10, 2
-        if not slycot_check():
-            with pytest.raises(ControlSlycot, match="Can't find slycot"):
-                K, S, poles = cdlqr(A, B, Q, R, method='slycot')
+        with pytest.raises(ControlSlycot, match="Can't find slycot"):
+            K, S, poles = cdlqr(A, B, Q, R, method='slycot')
 
     @pytest.mark.xfail(reason="warning not implemented")
     def testLQR_warning(self):
@@ -537,7 +540,13 @@ class TestStatefbk:
         with pytest.warns(UserWarning):
             (K, S, E) = dlqr(A, B, Q, R, N)
 
-    def test_care(self):
+    @pytest.mark.parametrize('have_slycot',
+                             [pytest.param(True, marks=pytest.mark.slycot),
+                              pytest.param(False, marks=pytest.mark.noslycot)])
+    @pytest.mark.parametrize("method",
+                             [pytest.param('slycot', marks=pytest.mark.slycot),
+                              'scipy'])
+    def test_care(self, have_slycot, method):
         """Test stabilizing and anti-stabilizing feedback, continuous"""
         A = np.diag([1, -1])
         B = np.identity(2)
@@ -546,15 +555,15 @@ class TestStatefbk:
         S = np.zeros((2, 2))
         E = np.identity(2)
 
-        X, L, G = care(A, B, Q, R, S, E, stabilizing=True)
+        X, L, G = care(A, B, Q, R, S, E, stabilizing=True, method=method)
         assert np.all(np.real(L) < 0)
 
-        if slycot_check():
-            X, L, G = care(A, B, Q, R, S, E, stabilizing=False)
+        if have_slycot and method=='slycot':
+            X, L, G = care(A, B, Q, R, S, E, stabilizing=False, method=method)
             assert np.all(np.real(L) > 0)
         else:
             with pytest.raises(ControlArgument, match="'scipy' not valid"):
-                X, L, G = care(A, B, Q, R, S, E, stabilizing=False)
+                X, L, G = care(A, B, Q, R, S, E, stabilizing=False, method=method)
 
     @pytest.mark.parametrize(
         "stabilizing",
@@ -781,7 +790,10 @@ class TestStatefbk:
         np.testing.assert_allclose(clsys0_lin.A, clsys2_lin.A)
 
 
-    def test_lqr_integral_continuous(self):
+    @pytest.mark.parametrize('have_slycot',
+                             [pytest.param(True, marks=pytest.mark.slycot),
+                              pytest.param(False, marks=pytest.mark.noslycot)])
+    def test_lqr_integral_continuous(self, have_slycot):
         # Generate a continuous-time system for testing
         sys = ct.rss(4, 4, 2, strictly_proper=True)
         sys.C = np.eye(4)       # reset output to be full state
@@ -843,7 +855,7 @@ class TestStatefbk:
         assert all(np.real(clsys.poles()) < 0)
 
         # Make sure controller infinite zero frequency gain
-        if slycot_check():
+        if have_slycot:
             ctrl_tf = tf(ctrl)
             assert abs(ctrl_tf(1e-9)[0][0]) > 1e6
             assert abs(ctrl_tf(1e-9)[1][1]) > 1e6

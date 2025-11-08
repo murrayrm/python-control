@@ -8,7 +8,6 @@ import pytest
 import control as ct
 from control import NonlinearIOSystem, c2d, common_timebase, isctime, \
     isdtime, issiso, ss, tf, tf2ss
-from control.exception import slycot_check
 from control.lti import LTI, bandwidth, damp, dcgain, evalfr, poles, zeros
 
 
@@ -189,6 +188,10 @@ class TestLTI:
         assert isctime(obj) == ref
         assert isctime(obj, strict=True) == strictref
 
+    def p(*args):
+        # convenience for parametrize below
+        return pytest.param(*args, marks=pytest.mark.slycot)
+
     @pytest.mark.usefixtures("editsdefaults")
     @pytest.mark.parametrize("fcn", [ct.ss, ct.tf, ct.frd])
     @pytest.mark.parametrize("nstate, nout, ninp, omega, squeeze, shape", [
@@ -201,26 +204,26 @@ class TestLTI:
         [3, 1, 1, 0.1,          False, (1, 1)],
         [3, 1, 1, [0.1],        False, (1, 1, 1)],
         [3, 1, 1, [0.1, 1, 10], False, (1, 1, 3)],
-        [1, 2, 1, 0.1,          None,  (2, 1)],         # SIMO
-        [1, 2, 1, [0.1],        None,  (2, 1, 1)],
-        [1, 2, 1, [0.1, 1, 10], None,  (2, 1, 3)],
-        [2, 2, 1, 0.1,          True,  (2,)],
-        [2, 2, 1, [0.1],        True,  (2,)],
-        [3, 2, 1, 0.1,          False, (2, 1)],
-        [3, 2, 1, [0.1],        False, (2, 1, 1)],
-        [3, 2, 1, [0.1, 1, 10], False, (2, 1, 3)],
-        [1, 1, 2, [0.1, 1, 10], None, (1, 2, 3)],       # MISO
-        [2, 1, 2, [0.1, 1, 10], True, (2, 3)],
-        [3, 1, 2, [0.1, 1, 10], False, (1, 2, 3)],
-        [1, 1, 2, 0.1,          None, (1, 2)],
-        [1, 1, 2, 0.1,          True, (2,)],
-        [1, 1, 2, 0.1,          False, (1, 2)],
-        [1, 2, 2, [0.1, 1, 10], None, (2, 2, 3)],       # MIMO
-        [2, 2, 2, [0.1, 1, 10], True, (2, 2, 3)],
-        [3, 2, 2, [0.1, 1, 10], False, (2, 2, 3)],
-        [1, 2, 2, 0.1, None, (2, 2)],
-        [2, 2, 2, 0.1, True, (2, 2)],
-        [3, 2, 2, 0.1, False, (2, 2)],
+       p(1, 2, 1, 0.1,          None,  (2, 1)),
+       p(1, 2, 1, [0.1],        None,  (2, 1, 1)),
+       p(1, 2, 1, [0.1, 1, 10], None,  (2, 1, 3)),
+       p(2, 2, 1, 0.1,          True,  (2,)),
+       p(2, 2, 1, [0.1],        True,  (2,)),
+       p(3, 2, 1, 0.1,          False, (2, 1)),
+       p(3, 2, 1, [0.1],        False, (2, 1, 1)),
+       p(3, 2, 1, [0.1, 1, 10], False, (2, 1, 3)),
+       p(1, 1, 2, [0.1, 1, 10], None, (1, 2, 3)),       # MISO
+       p(2, 1, 2, [0.1, 1, 10], True, (2, 3)),
+       p(3, 1, 2, [0.1, 1, 10], False, (1, 2, 3)),
+       p(1, 1, 2, 0.1,          None, (1, 2)),
+       p(1, 1, 2, 0.1,          True, (2,)),
+       p(1, 1, 2, 0.1,          False, (1, 2)),
+       p(1, 2, 2, [0.1, 1, 10], None, (2, 2, 3)),       # MIMO
+       p(2, 2, 2, [0.1, 1, 10], True, (2, 2, 3)),
+       p(3, 2, 2, [0.1, 1, 10], False, (2, 2, 3)),
+       p(1, 2, 2, 0.1, None, (2, 2)),
+       p(2, 2, 2, 0.1, True, (2, 2)),
+       p(3, 2, 2, 0.1, False, (2, 2)),
     ])
     @pytest.mark.parametrize("omega_type", ["numpy", "native"])
     def test_squeeze(self, fcn, nstate, nout, ninp, omega, squeeze, shape,
@@ -229,9 +232,6 @@ class TestLTI:
         # Create the system to be tested
         if fcn == ct.frd:
             sys = fcn(ct.rss(nstate, nout, ninp), [1e-2, 1e-1, 1, 1e1, 1e2])
-        elif fcn == ct.tf and (nout > 1 or ninp > 1) and not slycot_check():
-            pytest.skip("Conversion of MIMO systems to transfer functions "
-                        "requires slycot.")
         else:
             sys = fcn(ct.rss(nstate, nout, ninp))
 
