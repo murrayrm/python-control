@@ -56,13 +56,11 @@ def test_summation_exceptions():
         ct.summing_junction('u', 'y', dimension=False)
 
 
-@pytest.mark.parametrize("dim", [1, 3])
+@pytest.mark.parametrize("dim",
+                         [1, pytest.param(3, marks=pytest.mark.slycot)])
 def test_interconnect_implicit(dim):
     """Test the use of implicit connections in interconnect()"""
     import random
-
-    if dim != 1 and not ct.slycot_check():
-        pytest.xfail("slycot not installed")
 
     # System definition
     P = ct.rss(2, dim, dim, strictly_proper=True, name='P')

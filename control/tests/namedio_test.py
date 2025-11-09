@@ -79,21 +79,26 @@ fun_notinstance = {
 }
 
 
+def p(*args):
+    # convenience for parametrize below
+    return pytest.param(*args, marks=pytest.mark.slycot)
+
+
 @pytest.mark.parametrize("fun, args, kwargs", [
-    [ct.rss, (4, 1, 1), {}],
-    [ct.rss, (3, 2, 1), {}],
-    [ct.drss, (4, 1, 1), {}],
-    [ct.drss, (3, 2, 1), {}],
+    p(ct.rss, (4, 1, 1), {}),
+    p(ct.rss, (3, 2, 1), {}),
+    p(ct.drss, (4, 1, 1), {}),
+    p(ct.drss, (3, 2, 1), {}),
     [ct.FRD, ([1, 2, 3,], [1, 2, 3]), {}],
     [ct.NonlinearIOSystem,
      (lambda t, x, u, params: -x, None),
      {'inputs': 2, 'outputs':2, 'states':2}],
-    [ct.ss, ([[1, 2], [3, 4]], [[0], [1]], [[1, 0]], 0), {}],
-    [ct.ss, ([], [], [], 3), {}], # static system
-    [ct.StateSpace, ([[1, 2], [3, 4]], [[0], [1]], [[1, 0]], 0), {}],
-    [ct.tf, ([1, 2], [3, 4, 5]), {}],
-    [ct.tf, (2, 3), {}], # static system
-    [ct.TransferFunction, ([1, 2], [3, 4, 5]), {}],
+    p(ct.ss, ([[1, 2], [3, 4]], [[0], [1]], [[1, 0]], 0), {}),
+    p(ct.ss, ([], [], [], 3), {}), # static system
+    p(ct.StateSpace, ([[1, 2], [3, 4]], [[0], [1]], [[1, 0]], 0), {}),
+    p(ct.tf, ([1, 2], [3, 4, 5]), {}),
+    p(ct.tf, (2, 3), {}), # static system
+    p(ct.TransferFunction, ([1, 2], [3, 4, 5]), {}),
 ])
 def test_io_naming(fun, args, kwargs):
     # Reset the ID counter to get uniform generic names
@@ -164,8 +169,8 @@ def test_io_naming(fun, args, kwargs):
     #
     # Convert the system to state space and make sure labels transfer
     #
-    if ct.slycot_check() and not isinstance(
-            sys_r, (ct.FrequencyResponseData, ct.NonlinearIOSystem)):
+    if not isinstance(sys_r,
+                      (ct.FrequencyResponseData, ct.NonlinearIOSystem)):
         sys_ss = ct.ss(sys_r)
         assert sys_ss != sys_r
         assert sys_ss.input_labels == input_labels
@@ -184,9 +189,8 @@ def test_io_naming(fun, args, kwargs):
     #
     # Convert the system to a transfer function and make sure labels transfer
     #
-    if not isinstance(
-            sys_r, (ct.FrequencyResponseData, ct.NonlinearIOSystem)) and \
-       ct.slycot_check():
+    if not isinstance(sys_r,
+                      (ct.FrequencyResponseData, ct.NonlinearIOSystem)):
         sys_tf = ct.tf(sys_r)
         assert sys_tf != sys_r
         assert sys_tf.input_labels == input_labels
@@ -202,9 +206,8 @@ def test_io_naming(fun, args, kwargs):
     #
     # Convert the system to a StateSpace and make sure labels transfer
     #
-    if not isinstance(
-            sys_r, (ct.FrequencyResponseData, ct.NonlinearIOSystem)) and \
-                    ct.slycot_check():
+    if not isinstance(sys_r,
+                      (ct.FrequencyResponseData, ct.NonlinearIOSystem)):
         sys_lio = ct.ss(sys_r)
         assert sys_lio != sys_r
         assert sys_lio.input_labels == input_labels

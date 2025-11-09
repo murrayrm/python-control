@@ -7,10 +7,14 @@ import pytest
 import control
 
 def pytest_runtest_setup(item):
-    if (not control.exception.slycot_check()
-        and any(mark.name == 'slycot'
-                for mark in item.iter_markers())):
-        pytest.skip("slycot not installed")
+    if not control.exception.slycot_check():
+        if any(mark.name == 'slycot'
+               for mark in item.iter_markers()):
+            pytest.skip("slycot not installed")
+    elif any(mark.name == 'noslycot'
+             for mark in item.iter_markers()):
+        # used, e.g., for tests checking ControlSlycot
+        pytest.skip("slycot installed")
 
     if (not control.exception.cvxopt_check()
         and any(mark.name == 'cvxopt'

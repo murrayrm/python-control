@@ -8,7 +8,7 @@ import pytest
 
 import control as ct
 from control import StateSpace, TransferFunction, c2d, isctime, ss2tf, tf2ss
-from control.exception import pandas_check, slycot_check
+from control.exception import pandas_check
 from control.timeresp import _default_time_vector, _ideal_tfinal_and_dt, \
     forced_response, impulse_response, initial_response, step_info, \
     step_response
@@ -1032,30 +1032,41 @@ class TestTimeresp:
         assert y.ndim == 1  # SISO returns "scalar" output
         assert t.shape == y.shape  # Allows direct plotting of output
 
+    def p(*args):
+        # convenience for parametrize below
+        return pytest.param(*args, marks=pytest.mark.slycot)
+
     @pytest.mark.usefixtures("editsdefaults")
-    @pytest.mark.parametrize("fcn", [ct.ss, ct.tf])
-    @pytest.mark.parametrize("nstate, nout, ninp, squeeze, shape1, shape2", [
-    #  state  out   in   squeeze  in/out      out-only
-        [1,    1,    1,  None,   (8,),       (8,)],
-        [2,    1,    1,  True,   (8,),       (8,)],
-        [3,    1,    1,  False,  (1, 1, 8),  (1, 8)],
-        [3,    2,    1,  None,   (2, 1, 8),  (2, 8)],
-        [4,    2,    1,  True,   (2, 8),     (2, 8)],
-        [5,    2,    1,  False,  (2, 1, 8),  (2, 8)],
-        [3,    1,    2,  None,   (1, 2, 8),  (1, 8)],
-        [4,    1,    2,  True,   (2, 8),     (8,)],
-        [5,    1,    2,  False,  (1, 2, 8),  (1, 8)],
-        [4,    2,    2,  None,   (2, 2, 8),  (2, 8)],
-        [5,    2,    2,  True,   (2, 2, 8),  (2, 8)],
-        [6,    2,    2,  False,  (2, 2, 8),  (2, 8)],
+    @pytest.mark.parametrize("fcn, nstate, nout, ninp, squeeze, shape1, shape2", [
+     #  fcn, state  out    in  squeeze  in/out      out-only
+        [ct.ss, 1,    1,    1,  None,   (8,),       (8,)],
+        [ct.ss, 2,    1,    1,  True,   (8,),       (8,)],
+        [ct.ss, 3,    1,    1,  False,  (1, 1, 8),  (1, 8)],
+        [ct.ss, 3,    2,    1,  None,   (2, 1, 8),  (2, 8)],
+        [ct.ss, 4,    2,    1,  True,   (2, 8),     (2, 8)],
+        [ct.ss, 5,    2,    1,  False,  (2, 1, 8),  (2, 8)],
+        [ct.ss, 3,    1,    2,  None,   (1, 2, 8),  (1, 8)],
+        [ct.ss, 4,    1,    2,  True,   (2, 8),     (8,)],
+        [ct.ss, 5,    1,    2,  False,  (1, 2, 8),  (1, 8)],
+        [ct.ss, 4,    2,    2,  None,   (2, 2, 8),  (2, 8)],
+        [ct.ss, 5,    2,    2,  True,   (2, 2, 8),  (2, 8)],
+        [ct.ss, 6,    2,    2,  False,  (2, 2, 8),  (2, 8)],
+        [ct.tf, 1,    1,    1,  None,   (8,),       (8,)],
+        [ct.tf, 2,    1,    1,  True,   (8,),       (8,)],
+        [ct.tf, 3,    1,    1,  False,  (1, 1, 8),  (1, 8)],
+       p(ct.tf, 3,    2,    1,  None,   (2, 1, 8),  (2, 8)),
+       p(ct.tf, 4,    2,    1,  True,   (2, 8),     (2, 8)),
+       p(ct.tf, 5,    2,    1,  False,  (2, 1, 8),  (2, 8)),
+       p(ct.tf, 3,    1,    2,  None,   (1, 2, 8),  (1, 8)),
+       p(ct.tf, 4,    1,    2,  True,   (2, 8),     (8,)),
+       p(ct.tf, 5,    1,    2,  False,  (1, 2, 8),  (1, 8)),
+       p(ct.tf, 4,    2,    2,  None,   (2, 2, 8),  (2, 8)),
+       p(ct.tf, 5,    2,    2,  True,   (2, 2, 8),  (2, 8)),
+       p(ct.tf, 6,    2,    2,  False,  (2, 2, 8),  (2, 8)),
     ])
     def test_squeeze(self, fcn, nstate, nout, ninp, squeeze, shape1, shape2):
         # Define the system
-        if fcn == ct.tf and (nout > 1 or ninp > 1) and not slycot_check():
-            pytest.skip("Conversion of MIMO systems to transfer functions "
-                        "requires slycot.")
-        else:
-            sys = fcn(ct.rss(nstate, nout, ninp, strictly_proper=True))
+        sys = fcn(ct.rss(nstate, nout, ninp, strictly_proper=True))
 
         # Generate the time and input vectors
         tvec = np.linspace(0, 1, 8)
