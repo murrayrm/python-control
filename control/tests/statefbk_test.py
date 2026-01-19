@@ -1275,7 +1275,10 @@ def test_create_statefbk_params(unicycle):
 
 
 @pytest.mark.parametrize('ny, nu', [(1, 1), (2, 2), (2, 1)])
-@pytest.mark.parametrize('method', [place, place_varga, place_acker])
+@pytest.mark.parametrize(
+    'method', [
+        place, place_acker,
+        pytest.param(place_varga, marks=pytest.mark.slycot)])
 def test_place_variants(ny, nu, method):
     sys = ct.rss(states=2, inputs=nu, outputs=ny)
     desired_poles = -np.arange(1, sys.nstates + 1, 1)
