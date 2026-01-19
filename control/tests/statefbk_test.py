@@ -1272,3 +1272,20 @@ def test_create_statefbk_params(unicycle):
     assert [k for k in clsys.params.keys()] == ['K', 'a', 'b']
     assert clsys.params['a'] == 2
     assert clsys.params['b'] == 1
+
+
+@pytest.mark.parametrize('ny, nu', [(1, 1), (2, 2), (2, 1)])
+@pytest.mark.parametrize('method', [place, place_varga, place_acker])
+def test_place_variants(ny, nu, method):
+    sys = ct.rss(states=2, inputs=nu, outputs=ny)
+    desired_poles = -np.arange(1, sys.nstates + 1, 1)
+
+    if method == place_acker and sys.ninputs != 1:
+        with pytest.raises(np.linalg.LinAlgError, match="must be square"):
+            K = method(sys.A, sys.B, desired_poles)
+    else:
+        K = method(sys.A, sys.B, desired_poles)
+
+        placed_poles = np.linalg.eigvals(sys.A - sys.B @ K)
+        np.testing.assert_array_almost_equal(
+            np.sort(desired_poles), np.sort(placed_poles))
