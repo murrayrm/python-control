@@ -251,7 +251,7 @@ def place_acker(A, B, poles):
         pmat = pmat + p[n-i-1] * np.linalg.matrix_power(A, i)
     K = np.linalg.solve(ct, pmat)
 
-    K = K[-1, :]                # Extract the last row
+    K = K[-1:, :]               # Extract the last row
     return K
 
 
